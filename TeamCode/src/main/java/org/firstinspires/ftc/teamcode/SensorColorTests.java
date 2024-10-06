@@ -220,14 +220,14 @@ public class SensorColorTests extends LinearOpMode {
         telemetry.addData("blue hopefully", "%.3f");
       }
 **/
-      if (colors.red >= colors.green >= colors.blue) {
-        telemetry.addData("Red");
+      if ((colors.red > colors.green) && (colors.red > colors.blue)) {
+        telemetry.addData("Red", "%.3f");
       }
-      else if (colors.green >= colors.red >= colors.blue) {
-        telemetry.addData("Yellow");
+      else if ((colors.green > colors.red) && (colors.green > colors.blue)) {
+        telemetry.addData("Yellow",  "%.3f");
       }
-      else if (colors.blue >= colors.green >= colors.red) {
-        telemetry.addData("Blue");
+      else if ((colors.blue > colors.green) && (colors.blue > colors.red)) {
+        telemetry.addData("Blue",  "%.3f");
       }
 
       telemetry.update();
