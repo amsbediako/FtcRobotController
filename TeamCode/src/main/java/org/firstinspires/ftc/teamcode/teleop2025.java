@@ -35,7 +35,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 
 /**
- * This file contains Teleop for Centerstage
+ * This file contains Teleop
  */
 
 @TeleOp(name = "teleop2025", group = "Linear Opmode")
@@ -43,7 +43,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class teleop2025 extends LinearOpMode {
 
     // Declare OpMode members for each of the 4 motors.
-  Hardware2025 robot = new Hardware2025(this);
+    Hardware2025 robot = new Hardware2025(this);
     private final ElapsedTime runtime = new ElapsedTime();
 
     // @Override
@@ -59,39 +59,48 @@ public class teleop2025 extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
             double max;
-            // This button choice was made so that it is hard to hit on accident,
-            // it can be freely changed based on preference.
+            // This button choice was made so that it is hard to hit on accident
             // The equivalent button is start on Xbox-style controllers.
             if (gamepad1.options) {
                 robot.resetYaw();
             }
+
+            robot.getColor();
+
+            //SlowScales
             double gp1LY = gamepad1.left_stick_y;
             double gp1LX = gamepad1.left_stick_x;
             double gp1RX = gamepad1.right_stick_x;
-            double slowscale = .25;
+
             if (gamepad1.right_bumper) {
+                double slowscale = .33;
+                gp1LY *= slowscale;
+                gp1LX *= slowscale;
+                gp1RX *= slowscale;
+            }
+
+            if (gamepad1.left_bumper) {
+                double slowscale = .1;
                 gp1LY *= slowscale;
                 gp1LX *= slowscale;
                 gp1RX *= slowscale;
             }
             robot.driveRobotFC(-gp1LY, gp1LX, gp1RX);
 
+            if (gamepad2.dpad_up) {
+                robot.moveSlide(1);
+            }
 
-            double intake_position;
             if (gamepad2.dpad_down) {
-                intake_position = 1;
-            } else if (gamepad2.dpad_up) {
-                intake_position = -1;
-            } else {
-                intake_position = 0.0;
+                robot.moveSlide(-1);
             }
         }
     }
+
 
     private void driveRobotFC(double v, double gp1LX, double gp1RX) {
     }
 
     private void resetYaw() {
-        
     }
 }
