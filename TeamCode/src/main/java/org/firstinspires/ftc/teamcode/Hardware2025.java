@@ -2,18 +2,154 @@ package org.firstinspires.ftc.teamcode;
 
 // import com.qualcomm.hardware.motors.RevRoboticsCoreHexMotor;
 
+import android.app.Activity;
+import android.graphics.Color;
+import android.view.View;
+
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
+import com.qualcomm.robotcore.hardware.SwitchableLight;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-public class hardware2025Ang {
+public class Hardware2025 {
     /* Declare OpMode members. */
     private LinearOpMode myOpMode = null;   // gain access to methods in the calling OpMode.
+
+    public void getColor() {
+
+
+        @TeleOp(name = "Sensor: ColorEdited", group = "Sensor")
+        class SensorColorTestsEdited extends LinearOpMode {
+
+            /** The colorSensor field will contain a reference to our color sensor hardware object */
+            NormalizedColorSensor colorSensor;
+
+            /** The relativeLayout field is used to aid in providing interesting visual feedback
+             * in this sample application; you probably *don't* need this when you use a color sensor on your
+             * robot. Note that you won't see anything change on the Driver Station, only on the Robot Controller. */
+            View relativeLayout;
+
+
+
+            @Override public void runOpMode() {
+
+
+                int relativeLayoutId = hardwareMap.appContext.getResources().getIdentifier("RelativeLayout", "id", hardwareMap.appContext.getPackageName());
+                relativeLayout = ((Activity) hardwareMap.appContext).findViewById(relativeLayoutId);
+
+                try {
+                    runSample();
+                } finally {
+
+                    relativeLayout.post(new Runnable() {
+                        public void run() {
+                            relativeLayout.setBackgroundColor(Color.WHITE);
+                        }
+                    });
+                }
+            }
+
+            protected void runSample() {
+
+                float gain = 20;
+
+
+                final float[] hsvValues = new float[3];
+
+
+                boolean xButtonPreviouslyPressed = false;
+                boolean xButtonCurrentlyPressed = false;
+
+                colorSensor = hardwareMap.get(NormalizedColorSensor.class, "sensor_color");
+
+
+                if (colorSensor instanceof SwitchableLight) {
+                    ((SwitchableLight)colorSensor).enableLight(true);
+                }
+
+
+                waitForStart();
+
+
+                while (opModeIsActive()) {
+
+                    telemetry.addData("Gain", gain);
+
+
+                    colorSensor.setGain(gain);
+
+
+                    xButtonCurrentlyPressed = gamepad1.x;
+
+
+                    if (xButtonCurrentlyPressed != xButtonPreviouslyPressed) {
+                        if (xButtonCurrentlyPressed) {
+                            if (colorSensor instanceof SwitchableLight) {
+                                SwitchableLight light = (SwitchableLight)colorSensor;
+                                light.enableLight(!light.isLightOn());
+                            }
+                        }
+                    }
+                    xButtonPreviouslyPressed = xButtonCurrentlyPressed;
+
+
+                    NormalizedRGBA colors = colorSensor.getNormalizedColors();
+
+
+                    Color.colorToHSV(colors.toColor(), hsvValues);
+
+                    telemetry.addLine()
+                            .addData("Red", "%.3f", colors.red)
+                            .addData("Green", "%.3f", colors.green)
+                            .addData("Blue", "%.3f", colors.blue);
+                    telemetry.addLine()
+                            .addData("Hue", "%.3f", hsvValues[0])
+                            .addData("Saturation", "%.3f", hsvValues[1])
+                            .addData("Value", "%.3f", hsvValues[2]);
+                    telemetry.addData("Alpha", "%.3f", colors.alpha);
+
+
+
+
+                    if (colorSensor instanceof DistanceSensor) {
+                        telemetry.addData("Distance (cm)", "%.3f", ((DistanceSensor) colorSensor).getDistance(DistanceUnit.CM));
+                    }
+
+
+                    //has greater and less thans
+                    if (hsvValues[0] > 21 && hsvValues[0] <28 ) {
+                        telemetry.addData("Red", "%.3f", hsvValues[0]);
+                    }
+                    else if (hsvValues[0] > 79 && hsvValues[0] < 86) {
+                        telemetry.addData("Yellow?", "%.3f", hsvValues[0]);
+                    }
+                    else if (hsvValues[0] > 215 && hsvValues[0] < 225) {
+                        telemetry.addData("blue hopefully", "%.3f", hsvValues[0]);
+                    }
+                    else {
+                        telemetry.addData("no color found", 0);
+                    }
+
+
+                    telemetry.update();
+
+
+
+                }
+            }
+        }
+
+    }
 
     public enum spike {LEFT, CENTER, RIGHT}
 
@@ -63,7 +199,7 @@ public class hardware2025Ang {
     // Define Drive constants.  Make them public so they CAN be used by the calling OpMode
 
     // Define a constructor that allows the OpMode to pass a reference to itself.
-    public hardware2025Ang(LinearOpMode opmode) {
+    public Hardware2025(LinearOpMode opmode) {
         myOpMode = opmode;
     }
 
