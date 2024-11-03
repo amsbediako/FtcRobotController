@@ -15,150 +15,30 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.SwitchableLight;
+import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+//CODE NOTES:
+//CLAW SERVO IS SERVO PORT 1
+//TOUCH SENSOR IS DIGITAL PORT 1
+
 public class Hardware2025 {
     /* Declare OpMode members. */
     private LinearOpMode myOpMode = null;   // gain access to methods in the calling OpMode.
 
-    public void getColor() {
-
-
-        @TeleOp(name = "Sensor: ColorEdited", group = "Sensor")
-        class SensorColorTestsEdited extends LinearOpMode {
-
-            /** The colorSensor field will contain a reference to our color sensor hardware object */
-            NormalizedColorSensor colorSensor;
-
-            /** The relativeLayout field is used to aid in providing interesting visual feedback
-             * in this sample application; you probably *don't* need this when you use a color sensor on your
-             * robot. Note that you won't see anything change on the Driver Station, only on the Robot Controller. */
-            View relativeLayout;
-
-
-
-            @Override public void runOpMode() {
-
-
-                int relativeLayoutId = hardwareMap.appContext.getResources().getIdentifier("RelativeLayout", "id", hardwareMap.appContext.getPackageName());
-                relativeLayout = ((Activity) hardwareMap.appContext).findViewById(relativeLayoutId);
-
-                try {
-                    runSample();
-                } finally {
-
-                    relativeLayout.post(new Runnable() {
-                        public void run() {
-                            relativeLayout.setBackgroundColor(Color.WHITE);
-                        }
-                    });
-                }
-            }
-
-            protected void runSample() {
-
-                float gain = 20;
-
-
-                final float[] hsvValues = new float[3];
-
-
-                boolean xButtonPreviouslyPressed = false;
-                boolean xButtonCurrentlyPressed = false;
-
-                colorSensor = hardwareMap.get(NormalizedColorSensor.class, "sensor_color");
-
-
-                if (colorSensor instanceof SwitchableLight) {
-                    ((SwitchableLight)colorSensor).enableLight(true);
-                }
-
-
-                waitForStart();
-
-
-                while (opModeIsActive()) {
-
-                    telemetry.addData("Gain", gain);
-
-
-                    colorSensor.setGain(gain);
-
-
-                    xButtonCurrentlyPressed = gamepad1.x;
-
-
-                    if (xButtonCurrentlyPressed != xButtonPreviouslyPressed) {
-                        if (xButtonCurrentlyPressed) {
-                            if (colorSensor instanceof SwitchableLight) {
-                                SwitchableLight light = (SwitchableLight)colorSensor;
-                                light.enableLight(!light.isLightOn());
-                            }
-                        }
-                    }
-                    xButtonPreviouslyPressed = xButtonCurrentlyPressed;
-
-
-                    NormalizedRGBA colors = colorSensor.getNormalizedColors();
-
-
-                    Color.colorToHSV(colors.toColor(), hsvValues);
-
-                    telemetry.addLine()
-                            .addData("Red", "%.3f", colors.red)
-                            .addData("Green", "%.3f", colors.green)
-                            .addData("Blue", "%.3f", colors.blue);
-                    telemetry.addLine()
-                            .addData("Hue", "%.3f", hsvValues[0])
-                            .addData("Saturation", "%.3f", hsvValues[1])
-                            .addData("Value", "%.3f", hsvValues[2]);
-                    telemetry.addData("Alpha", "%.3f", colors.alpha);
-
-
-
-
-                    if (colorSensor instanceof DistanceSensor) {
-                        telemetry.addData("Distance (cm)", "%.3f", ((DistanceSensor) colorSensor).getDistance(DistanceUnit.CM));
-                    }
-
-
-                    //has greater and less thans
-                    if (hsvValues[0] > 21 && hsvValues[0] <28 ) {
-                        telemetry.addData("Red", "%.3f", hsvValues[0]);
-                    }
-                    else if (hsvValues[0] > 79 && hsvValues[0] < 86) {
-                        telemetry.addData("Yellow?", "%.3f", hsvValues[0]);
-                    }
-                    else if (hsvValues[0] > 215 && hsvValues[0] < 225) {
-                        telemetry.addData("blue hopefully", "%.3f", hsvValues[0]);
-                    }
-                    else {
-                        telemetry.addData("no color found", 0);
-                    }
-
-
-                    telemetry.update();
-
-
-
-                }
-            }
-        }
-
-    }
 
     public enum spike {LEFT, CENTER, RIGHT}
+
+    public enum sampleColor {RED, YELLOW, BLUE, NONE}
 
     public static final double SPIKE_CENTER_MIN = 100.;
     public static final double SPIKE_CENTER_MAX = 400.;
     public static final double SPIKE_RIGHT_MIN = 410;
     public static final double SPIKE_RIGHT_MAX = 600.;
-
-
 
 
     // Define Motor and Servo objects  (Make them private so they can't be accessed externally)
@@ -170,12 +50,16 @@ public class Hardware2025 {
     private DcMotor slide = null;
 
 
-
     private IMU imu = null;
     private double robotHeading = 0;
     private double headingOffset = 0;
     private double headingError = 0;
     private double targetHeading = 0;
+
+    private NormalizedColorSensor colorSensor;
+    private float colorSensorGain = 20;
+    private TouchSensor touchSensor;
+
 
     // Servo values for chopstick grabber
 
@@ -190,10 +74,8 @@ public class Hardware2025 {
     static final double P_TURN_GAIN = 0.02;     // Larger is more responsive, but also less stable
     static final double P_DRIVE_GAIN = 0.02;     // Larger is more responsive, but also less stable
     static final double HEADING_THRESHOLD = 5.0;
-
-    public static final int PLANE_LAUNCH = 0;
-
-
+    static final double OPEN_SERVO_CLAW = 0.8;
+    static final double CLOSE_SERVO_CLAW = 0.46;
 
 
     // Define Drive constants.  Make them public so they CAN be used by the calling OpMode
@@ -218,6 +100,11 @@ public class Hardware2025 {
         rightFrontDrive = myOpMode.hardwareMap.get(DcMotor.class, "right_front_drive");
         rightBackDrive = myOpMode.hardwareMap.get(DcMotor.class, "right_back_drive");
         slide = myOpMode.hardwareMap.get(DcMotor.class, "slide");
+        colorSensor = myOpMode.hardwareMap.get(NormalizedColorSensor.class, "sensor_color");
+        if (colorSensor instanceof SwitchableLight) {
+            ((SwitchableLight) colorSensor).enableLight(true);
+        }
+        touchSensor = myOpMode.hardwareMap.get(TouchSensor.class, "sensor_touch");
 
 
         // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
@@ -248,9 +135,7 @@ public class Hardware2025 {
      */
 
 
-
     // end method initTfod()
-
     public void straightByEncoder(double speed, double distance, double timeout) {
         int newLeftFrontTarget;
         int newLeftBackTarget;
@@ -442,6 +327,28 @@ public class Hardware2025 {
 
     public void moveSlide(double power) {
         slide.setPower(power);
+    }
+
+    public sampleColor getColor() {
+        colorSensor.setGain(colorSensorGain);
+        NormalizedRGBA colors = colorSensor.getNormalizedColors();
+        float[] hsvValues = new float[3];
+        Color.colorToHSV(colors.toColor(), hsvValues);
+        if (hsvValues[0] > 21 && hsvValues[0] < 28) {
+            //telemetry.addData("Red", "%.3f", hsvValues[0]);
+            return sampleColor.RED;
+        } else if (hsvValues[0] > 79 && hsvValues[0] < 86) {
+           // telemetry.addData("Yellow", "%.3f", hsvValues[0]);
+            return sampleColor.YELLOW;
+        } else if (hsvValues[0] > 215 && hsvValues[0] < 225) {
+           // telemetry.addData("Blue", "%.3f", hsvValues[0]);
+            return sampleColor.BLUE;
+        }
+
+       // telemetry.addData("no color found", 0);
+        return sampleColor.NONE;
+
+
     }
 }
 

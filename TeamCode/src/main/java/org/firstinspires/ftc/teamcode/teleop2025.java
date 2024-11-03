@@ -95,6 +95,12 @@ public class teleop2025 extends LinearOpMode {
                 robot.moveSlide(-1);
             }
         }
+
+
+
+
+
+
     }
 
 

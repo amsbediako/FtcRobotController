@@ -43,16 +43,13 @@ import com.qualcomm.robotcore.hardware.SwitchableLight;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 
-@TeleOp(name = "Sensor: ColorEdited", group = "Sensor")
 
 public class SensorColorTestsEdited extends LinearOpMode {
 
-  /** The colorSensor field will contain a reference to our color sensor hardware object */
+
   NormalizedColorSensor colorSensor;
 
-  /** The relativeLayout field is used to aid in providing interesting visual feedback
-   * in this sample application; you probably *don't* need this when you use a color sensor on your
-   * robot. Note that you won't see anything change on the Driver Station, only on the Robot Controller. */
+
   View relativeLayout;
 
 
@@ -83,8 +80,8 @@ public class SensorColorTestsEdited extends LinearOpMode {
     final float[] hsvValues = new float[3];
 
 
-    boolean xButtonPreviouslyPressed = false;
-    boolean xButtonCurrentlyPressed = false;
+    boolean yButtonPreviouslyPressed = false;
+    boolean yButtonCurrentlyPressed = false;
 
     colorSensor = hardwareMap.get(NormalizedColorSensor.class, "sensor_color");
 
@@ -105,18 +102,18 @@ public class SensorColorTestsEdited extends LinearOpMode {
       colorSensor.setGain(gain);
 
 
-      xButtonCurrentlyPressed = gamepad1.x;
+      yButtonCurrentlyPressed = gamepad1.y;
 
 
-      if (xButtonCurrentlyPressed != xButtonPreviouslyPressed) {
-        if (xButtonCurrentlyPressed) {
+      if (yButtonCurrentlyPressed != yButtonPreviouslyPressed) {
+        if (yButtonCurrentlyPressed) {
           if (colorSensor instanceof SwitchableLight) {
             SwitchableLight light = (SwitchableLight)colorSensor;
             light.enableLight(!light.isLightOn());
           }
         }
       }
-      xButtonPreviouslyPressed = xButtonCurrentlyPressed;
+      yButtonPreviouslyPressed = yButtonCurrentlyPressed;
 
 
       NormalizedRGBA colors = colorSensor.getNormalizedColors();
