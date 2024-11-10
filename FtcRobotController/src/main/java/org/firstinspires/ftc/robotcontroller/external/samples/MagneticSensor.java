@@ -32,6 +32,7 @@ package org.firstinspires.ftc.robotcontroller.external.samples;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
 /*
@@ -47,16 +48,27 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list.
  */
-@TeleOp(name = "Sensor: REV touch sensor", group = "Sensor")
-@Disabled
+//@TeleOp(name = "Sensor: REV touch sensor", group = "Sensor")
+//@Disabled
+
+/*
 public class SensorTouch extends LinearOpMode {
-    TouchSensor touchSensor;  // Touch sensor Object
+    private TouchSensor magneticSensorLow;  // Touch sensor Object
+   private TouchSensor magneticSensorWall ;  // Touch sensor Object
+    private TouchSensor magneticSensorHigh;  // Touch sensor Object
+    private TouchSensor magneticSensorStart;  // Touch sensor Object
+    private DcMotor slide;
+
+    public static final double MAGNETIC_SENSOR_START = 0;
+    public static final double MAGNETIC_SENSOR_WALL = 1;
+    public static final double MAGNETIC_SENSOR_LOW = 2;
+    public enum SlidePosition { START, WALL, LOW, HIGH, NONE};
+    public enum slideCurrent { START, WALL, LOW, HIGH, NONE};
 
     @Override
     public void runOpMode() {
-
         // get a reference to our touchSensor object.
-        touchSensor = hardwareMap.get(TouchSensor.class, "sensor_touch");
+        magneticSensorLow = hardwareMap.get(TouchSensor.class, "magnetic_sensor_low");
 
         // wait for the start button to be pressed.
         waitForStart();
@@ -66,13 +78,80 @@ public class SensorTouch extends LinearOpMode {
         while (opModeIsActive()) {
 
             // send the info back to driver station using telemetry function.
-            if (touchSensor.isPressed()) {
-                telemetry.addData("Touch Sensor", "Is Pressed");
-            } else {
-                telemetry.addData("Touch Sensor", "Is Not Pressed");
+
+             public slideCurrent getCurrent(){
+
+                if (magneticSensorLow.isPressed()) {
+                    telemetry.addData("LinearSlide", "Is at low");
+                    return slideCurrent.LOW;
+                }
+
+                telemetry.update();
             }
 
-            telemetry.update();
+            magneticSensorWall = hardwareMap.get(TouchSensor.class, "magnetic_sensor_wall");
+
+            // wait for the start button to be pressed.
+            waitForStart();
+
+            // while the OpMode is active, loop and read whether the sensor is being pressed.
+            // Note we use opModeIsActive() as our loop condition because it is an interruptible method.
+            while (opModeIsActive()) {
+
+                // send the info back to driver station using telemetry function.
+                if (magneticSensorWall.isPressed()) {
+                    telemetry.addData("LinearSlide", "Is at wall");
+                    return slideCurrent.WALL;
+                }
+
+                telemetry.update();
+            }
+
+            magneticSensorHigh = hardwareMap.get(TouchSensor.class, "magnetic_sensor_high");
+
+            // wait for the start button to be pressed.
+            waitForStart();
+
+            // while the OpMode is active, loop and read whether the sensor is being pressed.
+            // Note we use opModeIsActive() as our loop condition because it is an interruptible method.
+            while (opModeIsActive()) {
+
+                // send the info back to driver station using telemetry function.
+                if (magneticSensorHigh.isPressed()) {
+                    telemetry.addData("LinearSlide", "Is at high");
+                    return slideCurrent.HIGH;
+                }
+
+                telemetry.update();
+            }
+            magneticSensorStart = hardwareMap.get(TouchSensor.class, "magnetic_sensor_start");
+
+            // wait for the start button to be pressed.
+            waitForStart();
+
+            // while the OpMode is active, loop and read whether the sensor is being pressed.
+            // Note we use opModeIsActive() as our loop condition because it is an interruptible method.
+            while (opModeIsActive()) {
+
+                // send the info back to driver station using telemetry function.
+                if (magneticSensorStart.isPressed()) {
+                    telemetry.addData("LinearSlide", "Is at start");
+                    return slideCurrent.START;
+                }
+            }
+
+
+
+
+
         }
     }
-}
+*/
+
+
+
+
+
+
+
+

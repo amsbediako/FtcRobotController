@@ -29,6 +29,8 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import android.widget.Switch;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -66,6 +68,7 @@ public class teleop2025 extends LinearOpMode {
             }
 
             robot.getColor();
+            robot.getSlideCurrent();
 
             //SlowScales
             double gp1LY = gamepad1.left_stick_y;
@@ -96,17 +99,175 @@ public class teleop2025 extends LinearOpMode {
             }
         }
 
+        if (gamepad2.a) {
+            //go to start position
+            double power = 0.0;
+            robot.slideTargetPosition = Hardware2025.SlidePosition.START;
+            switch (robot.getSlideCurrent()) {
+                case HIGH:
+                case LOW:
+                case WALL:
+
+                    power = -0.5;
+                    break;
+
+                case NONE:
+                    break;
+            }
+            robot.moveSlide(power);
+
+            if (robot.getSlidePower() > 0.0) {
+
+                switch (robot.slideTargetPosition) {
+                    case START:
+                        if (robot.magneticSensorStart.isPressed()) {
+                            robot.moveSlide(0.0);
+                            robot.slideCurrentPosition = Hardware2025.SlidePosition.START;
+                        }
+
+                }
+                if (robot.getSlidePower() < 0.0) {
+
+                    switch (robot.slideTargetPosition) {
+                        case START:
+                            if (robot.magneticSensorStart.isPressed()) {
+                                robot.moveSlide(0.0);
+                                robot.slideCurrentPosition = Hardware2025.SlidePosition.START;
+
+                            }
+
+                    }
+
+                }
+            }
+        }
 
 
+        if (gamepad2.b) {
+            //go to Wall position
+            double power = 0.0;
+            robot.slideTargetPosition = Hardware2025.SlidePosition.WALL;
+            switch (robot.getSlideCurrent()) {
+                case HIGH:
+                case LOW:
+                    power = -0.5;
+                    break;
+
+                case START:
+                    power = 0.5;
+                    break;
+                case NONE:
+                    break;
+            }
+            robot.moveSlide(power);
+
+            if (robot.getSlidePower() > 0.0) {
+                switch (robot.slideTargetPosition) {
+                    case WALL:
+                        if (robot.magneticSensorWall.isPressed()) {
+                            robot.moveSlide(0.0);
+                        }
+
+                }
+                if (robot.getSlidePower() < 0.0) {
+
+                    switch (robot.slideTargetPosition) {
+                        case WALL:
+                            if (robot.magneticSensorWall.isPressed()) {
+                                robot.moveSlide(0.0);
+
+                            }
+
+                    }
+
+                }
+            }
+        }
+
+        if (gamepad2.x) {
+            //go to Low Bar position
+            double power = 0.0;
+            robot.slideTargetPosition = Hardware2025.SlidePosition.LOW;
+            switch (robot.getSlideCurrent()) {
+                case HIGH:
+                    power = -0.5;
+                    break;
+
+                case START:
+                case WALL:
+                    power = 0.5;
+                    break;
+                case NONE:
+                    break;
+            }
+            robot.moveSlide(power);
+
+            if (robot.getSlidePower() > 0.0) {
+                switch (robot.slideTargetPosition) {
+                    case LOW:
+                        if (robot.magneticSensorLow.isPressed()) {
+                            robot.moveSlide(0.0);
+                        }
+
+                }
+                if (robot.getSlidePower() < 0.0) {
+
+                    switch (robot.slideTargetPosition) {
+                        case LOW:
+                            if (robot.magneticSensorLow.isPressed()) {
+                                robot.moveSlide(0.0);
+
+                            }
+
+                    }
+
+                }
+            }
+        }
+
+        if (gamepad2.y) {
+            //go to Low Bar position
+            double power = 0.0;
+            robot.slideTargetPosition = Hardware2025.SlidePosition.HIGH;
+            switch (robot.getSlideCurrent()) {
+                case LOW:
+                case START:
+                case WALL:
+                    power = 0.5;
+                    break;
+                case NONE:
+                    break;
+            }
+            robot.moveSlide(power);
+
+            if (robot.getSlidePower() > 0.0) {
+                switch (robot.slideTargetPosition) {
+                    case HIGH:
+                        if (robot.magneticSensorHigh.isPressed()) {
+                            robot.moveSlide(0.0);
+                        }
+
+                }
+                if (robot.getSlidePower() < 0.0) {
+
+                    switch (robot.slideTargetPosition) {
+                        case HIGH:
+                            if (robot.magneticSensorHigh.isPressed()) {
+                                robot.moveSlide(0.0);
+
+                            }
+
+                    }
+
+                }
+            }
+        }
 
 
+       /* private void driveRobotFC(double v, double gp1LX, double gp1RX){
+        }
 
-    }
-
-
-    private void driveRobotFC(double v, double gp1LX, double gp1RX) {
-    }
-
-    private void resetYaw() {
+        private void resetYaw(){
+        }*/
     }
 }

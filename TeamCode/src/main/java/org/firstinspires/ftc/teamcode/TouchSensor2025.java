@@ -51,6 +51,8 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
 @TeleOp(name = "Sensor: touch sensor claw", group = "Sensor")
 //@Disabled
 public class TouchSensor2025 extends LinearOpMode {
+
+
     TouchSensor touchSensor;  // Touch sensor Object
     Servo clawServo;
     public static final double OPEN_SERVO_CLAW = 0.8;
@@ -72,14 +74,15 @@ public class TouchSensor2025 extends LinearOpMode {
 
             // send the info back to driver station using telemetry function.
 
-            if (gamepad2.x) {
+
+            if (gamepad2.right_bumper) {
                 clawServo.setPosition(OPEN_SERVO_CLAW);
-                telemetry.addData("Gamepad2x", "Is Pressed");
+                telemetry.addData("Gamepad2RB", "Is Pressed");
 
 
 
             } else {
-                telemetry.addData("Gamepad2x", "Is Not Pressed");
+                telemetry.addData("Gamepad2RB", "Is Not Pressed");
                 if (touchSensor.isPressed()) {
                     clawServo.setPosition(CLOSE_SERVO_CLAW);
 

@@ -2,13 +2,9 @@ package org.firstinspires.ftc.teamcode;
 
 // import com.qualcomm.hardware.motors.RevRoboticsCoreHexMotor;
 
-import android.app.Activity;
 import android.graphics.Color;
-import android.view.View;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -20,7 +16,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 //CODE NOTES:
 //CLAW SERVO IS SERVO PORT 1
@@ -59,6 +54,14 @@ public class Hardware2025 {
     private NormalizedColorSensor colorSensor;
     private float colorSensorGain = 20;
     private TouchSensor touchSensor;
+    public TouchSensor magneticSensorLow;  // Touch sensor Object
+    public TouchSensor magneticSensorWall;  // Touch sensor Object
+    public TouchSensor magneticSensorHigh;  // Touch sensor Object
+    public TouchSensor magneticSensorStart;  // Touch sensor Object
+    public enum SlidePosition { START, WALL, LOW, HIGH, NONE};
+    public SlidePosition slideCurrentPosition = SlidePosition.NONE;
+    public SlidePosition slideTargetPosition = SlidePosition.NONE;
+
 
 
     // Servo values for chopstick grabber
@@ -105,6 +108,12 @@ public class Hardware2025 {
             ((SwitchableLight) colorSensor).enableLight(true);
         }
         touchSensor = myOpMode.hardwareMap.get(TouchSensor.class, "sensor_touch");
+        magneticSensorWall = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_wall");
+        magneticSensorLow = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_low");
+        magneticSensorHigh = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_high");
+        magneticSensorStart = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_start");
+
+
 
 
         // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
@@ -350,6 +359,53 @@ public class Hardware2025 {
 
 
     }
+
+    public SlidePosition getSlideCurrent(){
+
+        if (magneticSensorStart.isPressed()) {
+            myOpMode.telemetry.addData("LinearSlide", "Is at start");
+            return SlidePosition.START;
+        }
+
+
+
+        if (magneticSensorWall.isPressed()) {
+            myOpMode.telemetry.addData("LinearSlide", "Is at wall");
+            return SlidePosition.WALL;
+        }
+
+
+
+        if (magneticSensorLow.isPressed()) {
+            myOpMode.telemetry.addData("LinearSlide", "Is at low");
+            return SlidePosition.LOW;
+        }
+
+
+
+        if (magneticSensorHigh.isPressed()) {
+            myOpMode.telemetry.addData("LinearSlide", "Is at high");
+            return SlidePosition.HIGH;
+        }
+
+
+        return null;
+    }
+
+    public double getSlidePower(){
+        return slide.getPower();
+    }
+
+
+
+
+
+
 }
+
+
+
+
+
 
 
