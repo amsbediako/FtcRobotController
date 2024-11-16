@@ -367,6 +367,40 @@ public class Hardware2025 {
 
     }
 
+    public void slideByEncoder(double speed, double distance, double timeout) {
+            int newSlideTarget;
+            if (myOpMode.opModeIsActive()) {
+                DcMotor.RunMode oldMotorMode = slide.getMode();
+
+                setMotorMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                setMotorMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+                // Determine new target position, and pass to motor controller
+                newSlideTarget = slide.getCurrentPosition() + (int) (distance * COUNTS_PER_INCH);
+                slide.setTargetPosition(newSlideTarget);
+
+                setMotorMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+                runtime.reset();
+                slide.setPower(Math.abs(speed));
+
+                while (myOpMode.opModeIsActive() &&
+                        (runtime.seconds() < timeout) &&
+                        (slide.isBusy())) {
+
+                    // Display it for the driver.
+                    myOpMode.telemetry.addData("Running to", " st:%7d ", newSlideTarget);
+                    myOpMode.telemetry.addData("Currently at", " at st:%7d", slide.getCurrentPosition());
+                    myOpMode.telemetry.update();
+                }
+
+                stop();
+                setMotorMode(oldMotorMode);
+                myOpMode.sleep(500);
+            }
+        }
+
+
     public SlidePosition getSlideCurrent(){
 
         if (magneticSensorStart.isPressed()) {
@@ -405,7 +439,7 @@ public class Hardware2025 {
 
 
 
-   public void runSlide() {
+   /*public void runSlide() {
 
        if (slideTargetPosition == SlidePosition.START) {
 
@@ -449,7 +483,8 @@ public class Hardware2025 {
                }
            }
        }
-       if (slideTargetPosition == SlidePosition.WALL) {
+
+        if (slideTargetPosition == SlidePosition.WALL) {
            //go to Wall position
            double power = 0.0;
            slideTargetPosition = Hardware2025.SlidePosition.WALL;
@@ -568,7 +603,9 @@ public class Hardware2025 {
                }
            }
        }
-   }
+   }*/
+
+
 
 
 

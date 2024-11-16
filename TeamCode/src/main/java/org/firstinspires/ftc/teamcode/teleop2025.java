@@ -66,8 +66,7 @@ public class teleop2025 extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
             double max;
-            // This button choice was made so that it is hard to hit on accident
-            // The equivalent button is start on Xbox-style controllers.
+            // This button choice was made so that it is hard to hit on accident - The equivalent button is start on Xbox-style controllers.
             if (gamepad1.options) {
                 robot.resetYaw();
             }
@@ -95,17 +94,26 @@ public class teleop2025 extends LinearOpMode {
             }
             robot.driveRobotFC(-gp1LY, gp1LX, gp1RX);
 
-            if (gamepad2.dpad_up) {
-                robot.moveSlide(1);
+            //go to the pickup height
+            if (gamepad2.a) {
+                robot.slideByEncoder(.5,5,10);
             }
 
-            if (gamepad2.dpad_down) {
-                robot.moveSlide(-1);
+            //go to bar 1 height
+            if (gamepad2.b) {
+                robot.slideByEncoder(.5,14,10);
+                robot.straightByEncoder(.3,1,10);
+                robot.slideByEncoder(.5,8.5,10);
+            }
+
+            if (gamepad2.x) {
+                robot.slideByEncoder(.5,27,15);
+                robot.straightByEncoder(.3,1,5);
+                robot.slideByEncoder(.5,21.5,10);
             }
 
 
-
-            if (gamepad2.a){
+            /** ?if (gamepad2.a){
                 robot.setSlideTargetPosition(Hardware2025.SlidePosition.START);
             }
             if (gamepad2.b){
@@ -118,16 +126,26 @@ public class teleop2025 extends LinearOpMode {
                 robot.setSlideTargetPosition(Hardware2025.SlidePosition.HIGH);
             }
 
+                        if (gamepad2.dpad_up) {
+                robot.moveSlide(1);
+            }
 
+            if (gamepad2.dpad_down) {
+                robot.moveSlide(-1);
+            }
 
-            robot.runSlide();
+             private void driveRobotFC(double v, double gp1LX, double gp1RX)}
+             private void resetYaw(){}
 
+             if (gamepad2.dpad_up) {
+             robot.moveSlide(1);
+             }
 
-       /* private void driveRobotFC(double v, double gp1LX, double gp1RX){
-        }
+             if (gamepad2.dpad_down) {
+             robot.moveSlide(-1);
+             }
+        **/
 
-        private void resetYaw(){
-        }*/
         }
     }
 }
