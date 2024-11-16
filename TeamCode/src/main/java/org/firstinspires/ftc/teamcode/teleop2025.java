@@ -33,6 +33,8 @@ import android.widget.Switch;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 
@@ -43,6 +45,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @TeleOp(name = "teleop2025", group = "Linear Opmode")
 //@Disabled
 public class teleop2025 extends LinearOpMode {
+
+    TouchSensor touchSensor;  // Touch sensor Object
+    Servo clawServo;
 
     // Declare OpMode members for each of the 4 motors.
     Hardware2025 robot = new Hardware2025(this);
@@ -97,171 +102,25 @@ public class teleop2025 extends LinearOpMode {
             if (gamepad2.dpad_down) {
                 robot.moveSlide(-1);
             }
-        }
 
-        if (gamepad2.a) {
-            //go to start position
-            double power = 0.0;
-            robot.slideTargetPosition = Hardware2025.SlidePosition.START;
-            switch (robot.getSlideCurrent()) {
-                case HIGH:
-                case LOW:
-                case WALL:
 
-                    power = -0.5;
-                    break;
 
-                case NONE:
-                    break;
+            if (gamepad2.a){
+                robot.setSlideTargetPosition(Hardware2025.SlidePosition.START);
             }
-            robot.moveSlide(power);
-
-            if (robot.getSlidePower() > 0.0) {
-
-                switch (robot.slideTargetPosition) {
-                    case START:
-                        if (robot.magneticSensorStart.isPressed()) {
-                            robot.moveSlide(0.0);
-                            robot.slideCurrentPosition = Hardware2025.SlidePosition.START;
-                        }
-
-                }
-                if (robot.getSlidePower() < 0.0) {
-
-                    switch (robot.slideTargetPosition) {
-                        case START:
-                            if (robot.magneticSensorStart.isPressed()) {
-                                robot.moveSlide(0.0);
-                                robot.slideCurrentPosition = Hardware2025.SlidePosition.START;
-
-                            }
-
-                    }
-
-                }
+            if (gamepad2.b){
+                robot.setSlideTargetPosition(Hardware2025.SlidePosition.WALL);
             }
-        }
-
-
-        if (gamepad2.b) {
-            //go to Wall position
-            double power = 0.0;
-            robot.slideTargetPosition = Hardware2025.SlidePosition.WALL;
-            switch (robot.getSlideCurrent()) {
-                case HIGH:
-                case LOW:
-                    power = -0.5;
-                    break;
-
-                case START:
-                    power = 0.5;
-                    break;
-                case NONE:
-                    break;
+            if (gamepad2.x){
+                robot.setSlideTargetPosition(Hardware2025.SlidePosition.LOW);
             }
-            robot.moveSlide(power);
-
-            if (robot.getSlidePower() > 0.0) {
-                switch (robot.slideTargetPosition) {
-                    case WALL:
-                        if (robot.magneticSensorWall.isPressed()) {
-                            robot.moveSlide(0.0);
-                        }
-
-                }
-                if (robot.getSlidePower() < 0.0) {
-
-                    switch (robot.slideTargetPosition) {
-                        case WALL:
-                            if (robot.magneticSensorWall.isPressed()) {
-                                robot.moveSlide(0.0);
-
-                            }
-
-                    }
-
-                }
+            if (gamepad2.y){
+                robot.setSlideTargetPosition(Hardware2025.SlidePosition.HIGH);
             }
-        }
 
-        if (gamepad2.x) {
-            //go to Low Bar position
-            double power = 0.0;
-            robot.slideTargetPosition = Hardware2025.SlidePosition.LOW;
-            switch (robot.getSlideCurrent()) {
-                case HIGH:
-                    power = -0.5;
-                    break;
 
-                case START:
-                case WALL:
-                    power = 0.5;
-                    break;
-                case NONE:
-                    break;
-            }
-            robot.moveSlide(power);
 
-            if (robot.getSlidePower() > 0.0) {
-                switch (robot.slideTargetPosition) {
-                    case LOW:
-                        if (robot.magneticSensorLow.isPressed()) {
-                            robot.moveSlide(0.0);
-                        }
-
-                }
-                if (robot.getSlidePower() < 0.0) {
-
-                    switch (robot.slideTargetPosition) {
-                        case LOW:
-                            if (robot.magneticSensorLow.isPressed()) {
-                                robot.moveSlide(0.0);
-
-                            }
-
-                    }
-
-                }
-            }
-        }
-
-        if (gamepad2.y) {
-            //go to Low Bar position
-            double power = 0.0;
-            robot.slideTargetPosition = Hardware2025.SlidePosition.HIGH;
-            switch (robot.getSlideCurrent()) {
-                case LOW:
-                case START:
-                case WALL:
-                    power = 0.5;
-                    break;
-                case NONE:
-                    break;
-            }
-            robot.moveSlide(power);
-
-            if (robot.getSlidePower() > 0.0) {
-                switch (robot.slideTargetPosition) {
-                    case HIGH:
-                        if (robot.magneticSensorHigh.isPressed()) {
-                            robot.moveSlide(0.0);
-                        }
-
-                }
-                if (robot.getSlidePower() < 0.0) {
-
-                    switch (robot.slideTargetPosition) {
-                        case HIGH:
-                            if (robot.magneticSensorHigh.isPressed()) {
-                                robot.moveSlide(0.0);
-
-                            }
-
-                    }
-
-                }
-            }
-        }
+            robot.runSlide();
 
 
        /* private void driveRobotFC(double v, double gp1LX, double gp1RX){
@@ -269,5 +128,6 @@ public class teleop2025 extends LinearOpMode {
 
         private void resetYaw(){
         }*/
+        }
     }
 }

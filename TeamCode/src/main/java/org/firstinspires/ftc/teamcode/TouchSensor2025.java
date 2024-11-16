@@ -53,17 +53,17 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
 public class TouchSensor2025 extends LinearOpMode {
 
 
-    TouchSensor touchSensor;  // Touch sensor Object
-    Servo clawServo;
-    public static final double OPEN_SERVO_CLAW = 0.8;
-    public static final double CLOSE_SERVO_CLAW = 0.46;
+    private TouchSensor touchSensor;  // Touch sensor Object
+    private Servo clawServo;
+    private static final double OPEN_SERVO_CLAW = 0.8;
+    private static final double CLOSE_SERVO_CLAW = 0.46;
 
     @Override
     public void runOpMode() {
 
         // get a reference to our touchSensor object.
         touchSensor = hardwareMap.get(TouchSensor.class, "sensor_touch");
-        clawServo = hardwareMap.get(Servo.class, "servo_claw");
+        // clawServo = hardwareMap.get(Servo.class, "servo_claw");
 
         // wait for the start button to be pressed.
         waitForStart();
