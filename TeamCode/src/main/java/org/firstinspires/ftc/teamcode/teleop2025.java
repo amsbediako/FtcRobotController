@@ -43,19 +43,26 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  */
 
 @TeleOp(name = "teleop2025", group = "Linear Opmode")
-//@Disabled
-public class teleop2025 extends LinearOpMode {
 
-    TouchSensor touchSensor;  // Touch sensor Object
-    Servo clawServo;
+public class teleop2025 extends LinearOpMode {
 
     // Declare OpMode members for each of the 4 motors.
     Hardware2025 robot = new Hardware2025(this);
     private final ElapsedTime runtime = new ElapsedTime();
 
-    // @Override
+    @Override
     public void runOpMode() {
         robot.init();
+
+        //robot.startSlide();
+//
+//        robot.moveSlide(0.3);
+//        if (robot.magneticSensorWall.isPressed()){
+//            robot.moveSlide(0.0);
+//        }else {
+//            robot.moveSlide(0.3);
+//        }
+//
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -66,19 +73,22 @@ public class teleop2025 extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
             double max;
-            // This button choice was made so that it is hard to hit on accident - The equivalent button is start on Xbox-style controllers.
+            // This button choice was made so that it is hard to hit on accident
+            // The equivalent button is start on Xbox-style controllers.
             if (gamepad1.options) {
                 robot.resetYaw();
             }
 
             robot.getColor();
             robot.getSlideCurrent();
+            telemetry.update();
 
-            //SlowScales
+            //SlowScales input
             double gp1LY = gamepad1.left_stick_y;
             double gp1LX = gamepad1.left_stick_x;
             double gp1RX = gamepad1.right_stick_x;
 
+            //slowscale 1
             if (gamepad1.right_bumper) {
                 double slowscale = .33;
                 gp1LY *= slowscale;
@@ -86,6 +96,7 @@ public class teleop2025 extends LinearOpMode {
                 gp1RX *= slowscale;
             }
 
+            //slowscale 2
             if (gamepad1.left_bumper) {
                 double slowscale = .1;
                 gp1LY *= slowscale;
@@ -96,20 +107,43 @@ public class teleop2025 extends LinearOpMode {
 
             //go to the pickup height
             if (gamepad2.a) {
-                robot.slideByEncoder(.5,5,10);
+                robot.slideByEncoder(.5, 5, 10);
             }
 
             //go to bar 1 height
             if (gamepad2.b) {
-                robot.slideByEncoder(.5,14,10);
-                robot.straightByEncoder(.3,1,10);
-                robot.slideByEncoder(.5,8.5,10);
+                robot.slideByEncoder(.5, 14, 10);
+                robot.straightByEncoder(.3, 1, 10);
+                robot.slideByEncoder(.5, 8.5, 10);
             }
 
             if (gamepad2.x) {
-                robot.slideByEncoder(.5,27,15);
-                robot.straightByEncoder(.3,1,5);
-                robot.slideByEncoder(.5,21.5,10);
+                robot.slideByEncoder(.5, 27, 15);
+                robot.straightByEncoder(.3, 1, 5);
+                robot.slideByEncoder(.5, 21.5, 10);
+            }
+
+            //open and close claw via touch sensor
+            if (gamepad2.right_bumper) {
+                robot.closeClaw();
+                telemetry.addData("GamepadRBumper", "Is Pressed");
+
+            }
+
+            if (gamepad2.left_bumper) {
+                robot.openClaw();
+                telemetry.addData("GamepaLRBumper", "Is Pressed");
+            }
+
+/*            else {
+                telemetry.addData("GamepadRBumper", "Is Not Pressed");
+                if (gamepad2.left_bumper) {
+                    robot.closeClaw();
+                    telemetry.addData("Touch Sensor", "Is Pressed");
+                } else {
+                    robot.openClaw();
+                    telemetry.addData("Touch Sensor", "Is Not Pressed");
+                }
             }
 
 
@@ -149,3 +183,4 @@ public class teleop2025 extends LinearOpMode {
         }
     }
 }
+

@@ -5,6 +5,7 @@ package org.firstinspires.ftc.teamcode;
 import android.graphics.Color;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -17,6 +18,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.MagneticFlux;
 
 //CODE NOTES:
 //CLAW SERVO IS SERVO PORT 1
@@ -26,12 +28,6 @@ public class Hardware2025 {
     /* Declare OpMode members. */
     private LinearOpMode myOpMode = null;   // gain access to methods in the calling OpMode.
 
-
-
-    public enum sampleColor {RED, YELLOW, BLUE, NONE}
-
-
-
     // Define Motor and Servo objects  (Make them private so they can't be accessed externally)
     private final ElapsedTime runtime = new ElapsedTime();
     private DcMotor leftFrontDrive = null;
@@ -39,17 +35,20 @@ public class Hardware2025 {
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
     private DcMotor slide = null;
+    private DcMotor arm = null;
 
-
-
+    // Define IMU object and headings (Make it private so it can't be accessed externally)
     private IMU imu = null;
     private double robotHeading = 0;
     private double headingOffset = 0;
     private double headingError = 0;
     private double targetHeading = 0;
 
+    // color sensing
+    public enum sampleColor {RED, YELLOW, BLUE, NONE} //color sensing enum
     private NormalizedColorSensor colorSensor;
     private float colorSensorGain = 20;
+   // private TouchSensor touchSensor;
     public TouchSensor magneticSensorLow;  // Touch sensor Object
     public TouchSensor magneticSensorWall;  // Touch sensor Object
     public TouchSensor magneticSensorHigh;  // Touch sensor Object
@@ -62,19 +61,15 @@ public class Hardware2025 {
     }
 
     public SlidePosition slideTargetPosition = SlidePosition.NONE;
-    public TouchSensor touchSensor;
-    public Servo clawServo;
 
-
-
-
-    // Servo values for chopstick grabber
-
+    //Drive constants
     static final double COUNTS_PER_MOTOR_REV = 1120;    // eg: our Motor Encoder
     static final double DRIVE_GEAR_REDUCTION = 1.0;     // No External Gearing.
     static final double WHEEL_DIAMETER_INCHES = 100.0 / 25.4;     // For figuring circumference
     static final double COUNTS_PER_INCH = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
             (WHEEL_DIAMETER_INCHES * Math.PI);
+
+    //necessaert???
     static final double DRIVE_SPEED = 0.6;
     static final double TURN_SPEED = 1.0;
     private double turnSpeed = 0;
@@ -82,10 +77,13 @@ public class Hardware2025 {
     static final double P_DRIVE_GAIN = 0.02;     // Larger is more responsive, but also less stable
     static final double HEADING_THRESHOLD = 5.0;
     static final double OPEN_SERVO_CLAW = 0.8;
-    static final double CLOSE_SERVO_CLAW = 0.46;
+    static final double CLOSE_SERVO_CLAW = 0.23;
+    private static final double BEAK_OPEN = .7;
+    private static final double BEAK_CLOSE = .5;
 
-
-    // Define Drive constants.  Make them public so they CAN be used by the calling OpMode
+    Servo clawServo;
+    Servo beakServo;
+    TouchSensor touchSensor;  // Touch sensor Object
 
     // Define a constructor that allows the OpMode to pass a reference to itself.
     public Hardware2025(LinearOpMode opmode) {
@@ -107,20 +105,18 @@ public class Hardware2025 {
         rightFrontDrive = myOpMode.hardwareMap.get(DcMotor.class, "right_front_drive");
         rightBackDrive = myOpMode.hardwareMap.get(DcMotor.class, "right_back_drive");
         slide = myOpMode.hardwareMap.get(DcMotor.class, "slide");
+        arm = myOpMode.hardwareMap.get(DcMotor.class, "arm");
         colorSensor = myOpMode.hardwareMap.get(NormalizedColorSensor.class, "sensor_color");
         if (colorSensor instanceof SwitchableLight) {
             ((SwitchableLight) colorSensor).enableLight(true);
         }
-        touchSensor = myOpMode.hardwareMap.get(TouchSensor.class, "sensor_touch");
         magneticSensorWall = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_wall");
-        magneticSensorLow = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_low");
-        magneticSensorHigh = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_high");
-        magneticSensorStart = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_start");
+//        magneticSensorLow = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_low");
+//        magneticSensorHigh = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_high");
+//        magneticSensorStart = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_start");
         touchSensor = myOpMode.hardwareMap.get(TouchSensor.class, "sensor_touch");
         clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
-
-
-
+        beakServo = myOpMode.hardwareMap.get(Servo.class, "beak_servo");
 
 
         // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
@@ -131,6 +127,7 @@ public class Hardware2025 {
         rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         slide.setDirection(DcMotor.Direction.FORWARD);
+        arm.setDirection(DcMotor.Direction.FORWARD);
 
         // Retrieve the IMU from the hardware map
         imu = myOpMode.hardwareMap.get(IMU.class, "imu");
@@ -146,12 +143,9 @@ public class Hardware2025 {
         myOpMode.telemetry.update();
     }
 
-    /**
-     * Initialize the TensorFlow Object Detection processor.
-     */
-
-
     // end method initTfod()
+
+    //Goes straight by encoder (takes distance)
     public void straightByEncoder(double speed, double distance, double timeout) {
         int newLeftFrontTarget;
         int newLeftBackTarget;
@@ -199,6 +193,7 @@ public class Hardware2025 {
         }
     }
 
+    //Drives for a set amount of time (takes time)
     public void driveTimed(double axial, double lateral, double yaw, double time) {
         setMotorMode(DcMotor.RunMode.RUN_USING_ENCODER);
         driveRobot(axial, lateral, yaw);
@@ -210,10 +205,12 @@ public class Hardware2025 {
         stop();
     }
 
+    //strafe
     public void strafe(double strafe_power) {
         driveRobot(0.0, strafe_power, 0.0);
     }
 
+    //strafe for a set amount of time (takes time)
     public void strafeTimed(double lateral, double time) {
         setMotorMode(DcMotor.RunMode.RUN_USING_ENCODER);
         driveRobot(0, lateral, 0);
@@ -225,9 +222,9 @@ public class Hardware2025 {
         stop();
     }
 
+    //drives robot
     public void driveRobot(double axial, double lateral, double yaw) {
         double max;
-
 
         // Combine the joystick requests for each axis-motion to determine each wheel's power.
         // Set up a variable for each drive wheel to save the power level for telemetry.
@@ -257,6 +254,7 @@ public class Hardware2025 {
         myOpMode.telemetry.addData("Back left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
     }
 
+    //field centric
     public void driveRobotFC(double axial, double lateral, double yaw) {
         double y = axial;
         double x = lateral;
@@ -299,6 +297,23 @@ public class Hardware2025 {
 
     public void resetYaw() {
         imu.resetYaw();
+    }
+
+    public void openClaw() {
+        clawServo.setPosition(OPEN_SERVO_CLAW);
+    }
+
+
+    public void closeClaw() {
+        clawServo.setPosition(CLOSE_SERVO_CLAW);
+    }
+
+    public void openBeak() {
+        clawServo.setPosition(BEAK_OPEN);
+    }
+
+    public void closeBeak() {
+        clawServo.setPosition(BEAK_CLOSE);
     }
 
     public double getSteeringCorrection(double desiredHeading, double proportionalGain) {
@@ -345,28 +360,43 @@ public class Hardware2025 {
         slide.setPower(power);
     }
 
+    public void moveSlideTimed(double power, double time) {
+        slide.setPower(power);
+        runtime.reset();
+        while (myOpMode.opModeIsActive() && (runtime.seconds() < time)) {
+            myOpMode.telemetry.addData("Path", "Leg 1: %4.1f S Elapsed", runtime.seconds());
+            myOpMode.telemetry.update();
+        }
+        slide.setPower(0.0);
+    }
+
+    public void driveDiagonalForTime(double forwardPower, double strafePower, double time) {
+        driveTimed(forwardPower, strafePower, 0, time);
+    }
+
     public sampleColor getColor() {
         colorSensor.setGain(colorSensorGain);
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
         float[] hsvValues = new float[3];
         Color.colorToHSV(colors.toColor(), hsvValues);
-        if (hsvValues[0] > 21 && hsvValues[0] < 28) {
-            //telemetry.addData("Red", "%.3f", hsvValues[0]);
+        if (hsvValues[0] > 1 && hsvValues[0] <  75) {
+            myOpMode.telemetry.addData("Red", "%.3f", hsvValues[0]);
             return sampleColor.RED;
-        } else if (hsvValues[0] > 79 && hsvValues[0] < 86) {
-           // telemetry.addData("Yellow", "%.3f", hsvValues[0]);
+        } else if (hsvValues[0] > 75 && hsvValues[0] < 130) {
+            myOpMode.telemetry.addData("Yellow", "%.3f", hsvValues[0]);
             return sampleColor.YELLOW;
-        } else if (hsvValues[0] > 215 && hsvValues[0] < 225) {
-           // telemetry.addData("Blue", "%.3f", hsvValues[0]);
+        } else if (hsvValues[0] > 150 && hsvValues[0] < 280) {
+           myOpMode.telemetry.addData("Blue", "%.3f", hsvValues[0]);
             return sampleColor.BLUE;
-        }
 
-       // telemetry.addData("no color found", 0);
+        }
+        myOpMode.telemetry.addData("no color found", 0);
         return sampleColor.NONE;
 
 
     }
 
+/*
     public void slideByEncoder(double speed, double distance, double timeout) {
             int newSlideTarget;
             if (myOpMode.opModeIsActive()) {
@@ -399,24 +429,26 @@ public class Hardware2025 {
                 myOpMode.sleep(500);
             }
         }
+*/
 
 
     public SlidePosition getSlideCurrent(){
 
+/* temporary commented out code
         if (magneticSensorStart.isPressed()) {
             myOpMode.telemetry.addData("LinearSlide", "Is at start");
             return SlidePosition.START;
         }
-
+*/
 
 
         if (magneticSensorWall.isPressed()) {
             myOpMode.telemetry.addData("LinearSlide", "Is at wall");
             return SlidePosition.WALL;
-        }
+        }else myOpMode.telemetry.addData("linearSlide", "Is not at wall");
 
 
-
+/*
         if (magneticSensorLow.isPressed()) {
             myOpMode.telemetry.addData("LinearSlide", "Is at low");
             return SlidePosition.LOW;
@@ -428,7 +460,7 @@ public class Hardware2025 {
             myOpMode.telemetry.addData("LinearSlide", "Is at high");
             return SlidePosition.HIGH;
         }
-
+*/
 
         return null;
     }
