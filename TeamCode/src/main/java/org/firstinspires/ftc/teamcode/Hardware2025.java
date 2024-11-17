@@ -5,6 +5,7 @@ package org.firstinspires.ftc.teamcode;
 import android.graphics.Color;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -69,6 +70,11 @@ public class Hardware2025 {
     static final double COUNTS_PER_INCH = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
             (WHEEL_DIAMETER_INCHES * Math.PI);
 
+    static final double COUNTS_PER_REVOLUTION_SLIDE = 288;
+    static final double SLIDE_GEAR_REDUCTION = 2;
+    static final double COUNTS_PER_INCH_SLIDE = (COUNTS_PER_REVOLUTION_SLIDE) /
+            (1.3125 * Math.PI * SLIDE_GEAR_REDUCTION);
+
     //necessaert???
     static final double DRIVE_SPEED = 0.6;
     static final double TURN_SPEED = 1.0;
@@ -127,6 +133,8 @@ public class Hardware2025 {
         rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         slide.setDirection(DcMotor.Direction.FORWARD);
+        slide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        slide.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         arm.setDirection(DcMotor.Direction.FORWARD);
 
         // Retrieve the IMU from the hardware map
@@ -141,6 +149,7 @@ public class Hardware2025 {
         resetHeading();
         myOpMode.telemetry.addData(">", "Hardware Initialized");
         myOpMode.telemetry.update();
+
     }
 
     // end method initTfod()
@@ -343,6 +352,18 @@ public class Hardware2025 {
         stop();
     }
 
+    public void startSlide() {
+        moveSlide(0.3);
+        if (magneticSensorWall.isPressed()){
+            slide.setPower(0.0);
+            moveSlide(0.0);
+        }
+    }
+
+    public void moveArm(double power){
+        arm.setPower(power);
+    }
+
     public void stop() {
         driveRobot(0, 0, 0);
         //    slide(0);
@@ -396,23 +417,16 @@ public class Hardware2025 {
 
     }
 
-/*
     public void slideByEncoder(double speed, double distance, double timeout) {
             int newSlideTarget;
             if (myOpMode.opModeIsActive()) {
-                DcMotor.RunMode oldMotorMode = slide.getMode();
-
-                setMotorMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                setMotorMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
                 // Determine new target position, and pass to motor controller
-                newSlideTarget = slide.getCurrentPosition() + (int) (distance * COUNTS_PER_INCH);
+                newSlideTarget = slide.getCurrentPosition() + (int) (distance * COUNTS_PER_INCH_SLIDE);
                 slide.setTargetPosition(newSlideTarget);
-
-                setMotorMode(DcMotor.RunMode.RUN_TO_POSITION);
-
+                slide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 runtime.reset();
                 slide.setPower(Math.abs(speed));
+
 
                 while (myOpMode.opModeIsActive() &&
                         (runtime.seconds() < timeout) &&
@@ -424,12 +438,11 @@ public class Hardware2025 {
                     myOpMode.telemetry.update();
                 }
 
-                stop();
-                setMotorMode(oldMotorMode);
+                slide.setPower(0);
+                slide.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 myOpMode.sleep(500);
             }
         }
-*/
 
 
     public SlidePosition getSlideCurrent(){
