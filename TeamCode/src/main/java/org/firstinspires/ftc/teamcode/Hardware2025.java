@@ -1,12 +1,8 @@
 package org.firstinspires.ftc.teamcode;
 
-// import com.qualcomm.hardware.motors.RevRoboticsCoreHexMotor;
-
 import android.graphics.Color;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -19,18 +15,12 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.MagneticFlux;
-
-//CODE NOTES:
-//CLAW SERVO IS SERVO PORT 1
-//TOUCH SENSOR IS DIGITAL PORT 1
 
 public class Hardware2025 {
     /* Declare OpMode members. */
     private LinearOpMode myOpMode = null;   // gain access to methods in the calling OpMode.
 
     // Define Motor and Servo objects  (Make them private so they can't be accessed externally)
-    private final ElapsedTime runtime = new ElapsedTime();
     private DcMotor leftFrontDrive = null;
     private DcMotor leftBackDrive = null;
     private DcMotor rightFrontDrive = null;
@@ -45,23 +35,36 @@ public class Hardware2025 {
     private double headingError = 0;
     private double targetHeading = 0;
 
-    // color sensing
+    // Run time (public)
+    private final ElapsedTime runtime = new ElapsedTime();
+
+    // Color sensing
     public enum sampleColor {RED, YELLOW, BLUE, NONE} //color sensing enum
+
     private NormalizedColorSensor colorSensor;
     private float colorSensorGain = 20;
-   // private TouchSensor touchSensor;
+
+    // Magnetic sensing
+    public TouchSensor magneticSensorWall;
+
+    public enum SlidePosition {START, WALL, LOW, HIGH, NONE}
+
+    ;
+
+    // Slide positions
+    public final double WALL_POSITION = 0;
+    public final double LOW_POSITION = 5.9;
+    public final double HIGH_POSITION = 19.4;
+    public SlidePosition slideTargetPosition = SlidePosition.NONE;
+
+    // Magnetic slide sensing for future
     public TouchSensor magneticSensorLow;  // Touch sensor Object
-    public TouchSensor magneticSensorWall;  // Touch sensor Object
     public TouchSensor magneticSensorHigh;  // Touch sensor Object
     public TouchSensor magneticSensorStart;  // Touch sensor Object
-    public enum SlidePosition { START, WALL, LOW, HIGH, NONE};
-    public SlidePosition slideCurrentPosition = SlidePosition.NONE;
 
     public void setSlideTargetPosition(SlidePosition slideTargetPosition) {
         this.slideTargetPosition = slideTargetPosition;
     }
-
-    public SlidePosition slideTargetPosition = SlidePosition.NONE;
 
     //Drive constants
     static final double COUNTS_PER_MOTOR_REV = 1120;    // eg: our Motor Encoder
@@ -75,18 +78,18 @@ public class Hardware2025 {
     static final double COUNTS_PER_INCH_SLIDE = (COUNTS_PER_REVOLUTION_SLIDE) /
             (1.3125 * Math.PI * SLIDE_GEAR_REDUCTION);
 
-    //necessaert???
-    static final double DRIVE_SPEED = 0.6;
-    static final double TURN_SPEED = 1.0;
     private double turnSpeed = 0;
     static final double P_TURN_GAIN = 0.02;     // Larger is more responsive, but also less stable
     static final double P_DRIVE_GAIN = 0.02;     // Larger is more responsive, but also less stable
     static final double HEADING_THRESHOLD = 5.0;
-    static final double OPEN_SERVO_CLAW = 0.8;
-    static final double CLOSE_SERVO_CLAW = 0.23;
+    static final double OPEN_SERVO_CLAW = 0.7;
+    static final double CLOSE_SERVO_CLAW = 0.2;
     private static final double BEAK_OPEN = .7;
     private static final double BEAK_CLOSE = .5;
+    private int slideTarget;
+    private double slideTimeout;
 
+    // Claw and beak servos and sensors
     Servo clawServo;
     Servo beakServo;
     TouchSensor touchSensor;  // Touch sensor Object
@@ -112,14 +115,13 @@ public class Hardware2025 {
         rightBackDrive = myOpMode.hardwareMap.get(DcMotor.class, "right_back_drive");
         slide = myOpMode.hardwareMap.get(DcMotor.class, "slide");
         arm = myOpMode.hardwareMap.get(DcMotor.class, "arm");
+
+        // Define and Initialize sensors
         colorSensor = myOpMode.hardwareMap.get(NormalizedColorSensor.class, "sensor_color");
         if (colorSensor instanceof SwitchableLight) {
             ((SwitchableLight) colorSensor).enableLight(true);
         }
         magneticSensorWall = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_wall");
-//        magneticSensorLow = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_low");
-//        magneticSensorHigh = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_high");
-//        magneticSensorStart = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_start");
         touchSensor = myOpMode.hardwareMap.get(TouchSensor.class, "sensor_touch");
         clawServo = myOpMode.hardwareMap.get(Servo.class, "claw_servo");
         beakServo = myOpMode.hardwareMap.get(Servo.class, "beak_servo");
@@ -150,6 +152,9 @@ public class Hardware2025 {
         myOpMode.telemetry.addData(">", "Hardware Initialized");
         myOpMode.telemetry.update();
 
+//      magneticSensorLow = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_low");
+//      magneticSensorHigh = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_high");
+//      magneticSensorStart = myOpMode.hardwareMap.get(TouchSensor.class, "magnetic_sensor_start");
     }
 
     // end method initTfod()
@@ -189,7 +194,7 @@ public class Hardware2025 {
                     (runtime.seconds() < timeout) &&
                     (leftFrontDrive.isBusy() && leftBackDrive.isBusy() && rightFrontDrive.isBusy() && rightBackDrive.isBusy())) {
 
-                // Display it for the driver.
+                // Display the data for the driver.
                 myOpMode.telemetry.addData("Running to", " lf:%7d lb:%7d rf:%7d rb:%7d", newLeftFrontTarget, newLeftBackTarget, newRightFrontTarget, newRightBackTarget);
                 myOpMode.telemetry.addData("Currently at", " at lf:%7d lb:%7d rf:%7d rb:%7d",
                         leftFrontDrive.getCurrentPosition(), leftBackDrive.getCurrentPosition(), rightFrontDrive.getCurrentPosition(), rightBackDrive.getCurrentPosition());
@@ -308,23 +313,6 @@ public class Hardware2025 {
         imu.resetYaw();
     }
 
-    public void openClaw() {
-        clawServo.setPosition(OPEN_SERVO_CLAW);
-    }
-
-
-    public void closeClaw() {
-        clawServo.setPosition(CLOSE_SERVO_CLAW);
-    }
-
-    public void openBeak() {
-        clawServo.setPosition(BEAK_OPEN);
-    }
-
-    public void closeBeak() {
-        clawServo.setPosition(BEAK_CLOSE);
-    }
-
     public double getSteeringCorrection(double desiredHeading, double proportionalGain) {
         targetHeading = desiredHeading;  // Save for telemetry
         // Get the robot heading by applying an offset to the IMU heading
@@ -352,18 +340,6 @@ public class Hardware2025 {
         stop();
     }
 
-    public void startSlide() {
-        moveSlide(0.3);
-        if (magneticSensorWall.isPressed()){
-            slide.setPower(0.0);
-            moveSlide(0.0);
-        }
-    }
-
-    public void moveArm(double power){
-        arm.setPower(power);
-    }
-
     public void stop() {
         driveRobot(0, 0, 0);
         //    slide(0);
@@ -376,6 +352,37 @@ public class Hardware2025 {
     public void straightTimed(double power, double time) {
         driveTimed(power, 0, 0, time);
     }
+
+    public void startSlide() {
+        moveSlide(0.3);
+        if (magneticSensorWall.isPressed()) {
+            slide.setPower(0.0);
+            moveSlide(0.0);
+        }
+    }
+
+    // Claw stuff
+    public void openClaw() {
+        clawServo.setPosition(OPEN_SERVO_CLAW);
+    }
+
+    public void closeClaw() {
+        clawServo.setPosition(CLOSE_SERVO_CLAW);
+    }
+
+    // Beak stuff
+    public void openBeak() {
+        beakServo.setPosition(BEAK_OPEN);
+    }
+
+    public void closeBeak() {
+        beakServo.setPosition(BEAK_CLOSE);
+    }
+
+    public void moveArm(double power) {
+        arm.setPower(power);
+    }
+
 
     public void moveSlide(double power) {
         slide.setPower(power);
@@ -400,91 +407,94 @@ public class Hardware2025 {
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
         float[] hsvValues = new float[3];
         Color.colorToHSV(colors.toColor(), hsvValues);
-        if (hsvValues[0] > 1 && hsvValues[0] <  75) {
+        if (hsvValues[0] > 1 && hsvValues[0] < 75) {
             myOpMode.telemetry.addData("Red", "%.3f", hsvValues[0]);
             return sampleColor.RED;
         } else if (hsvValues[0] > 75 && hsvValues[0] < 130) {
             myOpMode.telemetry.addData("Yellow", "%.3f", hsvValues[0]);
             return sampleColor.YELLOW;
         } else if (hsvValues[0] > 150 && hsvValues[0] < 280) {
-           myOpMode.telemetry.addData("Blue", "%.3f", hsvValues[0]);
+            myOpMode.telemetry.addData("Blue", "%.3f", hsvValues[0]);
             return sampleColor.BLUE;
 
         }
         myOpMode.telemetry.addData("no color found", 0);
         return sampleColor.NONE;
-
-
     }
 
-    public void slideByEncoder(double speed, double distance, double timeout) {
-            int newSlideTarget;
-            if (myOpMode.opModeIsActive()) {
-                // Determine new target position, and pass to motor controller
-                newSlideTarget = slide.getCurrentPosition() + (int) (distance * COUNTS_PER_INCH_SLIDE);
-                slide.setTargetPosition(newSlideTarget);
-                slide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                runtime.reset();
-                slide.setPower(Math.abs(speed));
+    public void relativeSlideByEncoder(double speed, double distance, double timeout) {
+        // Determine new target position, and pass to motor controller
+        slideTimeout = timeout;
+        slideTarget = slide.getCurrentPosition() + (int) (distance * COUNTS_PER_INCH_SLIDE);
+        slide.setTargetPosition(slideTarget);
+        slide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        runtime.reset();
+        slide.setPower(Math.abs(speed));
+    }
 
+    public void startSlideByEncoder(double speed, double position, double timeout) {
+        // Determine new target position, and pass to motor controller
+        slideTimeout = timeout;
+        slideTarget = (int) (position * COUNTS_PER_INCH_SLIDE);
+        slide.setTargetPosition(slideTarget);
+        slide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        runtime.reset();
+        slide.setPower(Math.abs(speed));
+    }
 
-                while (myOpMode.opModeIsActive() &&
-                        (runtime.seconds() < timeout) &&
-                        (slide.isBusy())) {
+    public void checkSlideByEncoderTimed() {
 
-                    // Display it for the driver.
-                    myOpMode.telemetry.addData("Running to", " st:%7d ", newSlideTarget);
-                    myOpMode.telemetry.addData("Currently at", " at st:%7d", slide.getCurrentPosition());
-                    myOpMode.telemetry.update();
-                }
+        if ((runtime.seconds() < slideTimeout) && (slide.isBusy())) {
 
-                slide.setPower(0);
-                slide.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                myOpMode.sleep(500);
-            }
+            // Display it for the driver.
+            myOpMode.telemetry.addData("Running to", " st:%7d ", slideTarget);
+            myOpMode.telemetry.addData("Currently at", " at st:%7d", slide.getCurrentPosition());
+            myOpMode.telemetry.update();
+        } else {
+
+            stopSlideEncoder();
         }
+    }
 
+    public void stopSlideEncoder() {
+        slide.setPower(0.01);
+        slide.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
 
-    public SlidePosition getSlideCurrent(){
+    public boolean isSlideBusy() {
+        return slide.isBusy();
+    }
 
-/* temporary commented out code
-        if (magneticSensorStart.isPressed()) {
-            myOpMode.telemetry.addData("LinearSlide", "Is at start");
-            return SlidePosition.START;
-        }
-*/
-
-
+    public SlidePosition getSlideCurrent() {
         if (magneticSensorWall.isPressed()) {
             myOpMode.telemetry.addData("LinearSlide", "Is at wall");
             return SlidePosition.WALL;
-        }else myOpMode.telemetry.addData("linearSlide", "Is not at wall");
+        } else myOpMode.telemetry.addData("linearSlide", "Is not at wall");
+
+        return null;
+    }
+    public double getSlidePower() {
+        return slide.getPower();
+    }
 
 
-/*
-        if (magneticSensorLow.isPressed()) {
+/* Code for next qualifier
+       if (magneticSensorLow.isPressed()) {
             myOpMode.telemetry.addData("LinearSlide", "Is at low");
             return SlidePosition.LOW;
         }
-
-
 
         if (magneticSensorHigh.isPressed()) {
             myOpMode.telemetry.addData("LinearSlide", "Is at high");
             return SlidePosition.HIGH;
         }
-*/
 
-        return null;
-    }
+           if (magneticSensorStart.isPressed()) {
+            myOpMode.telemetry.addData("LinearSlide", "Is at start");
+            return SlidePosition.START;
+        }
 
-    public double getSlidePower(){
-        return slide.getPower();
-    }
-
-
-
-   /*public void runSlide() {
+   public void runSlide() {
 
        if (slideTargetPosition == SlidePosition.START) {
 
@@ -504,30 +514,19 @@ public class Hardware2025 {
            moveSlide(power);
 
            if (getSlidePower() > 0.0) {
-
                switch (slideTargetPosition) {
                    case START:
                        if (magneticSensorStart.isPressed()) {
                            moveSlide(0.0);
                            slideCurrentPosition = Hardware2025.SlidePosition.START;
-                       }
-
-               }
+                       }}
                if (getSlidePower() < 0.0) {
 
                    switch (slideTargetPosition) {
                        case START:
                            if (magneticSensorStart.isPressed()) {
                                moveSlide(0.0);
-                               slideCurrentPosition = Hardware2025.SlidePosition.START;
-
-                           }
-
-                   }
-
-               }
-           }
-       }
+                               slideCurrentPosition = Hardware2025.SlidePosition.START; } } } }}
 
         if (slideTargetPosition == SlidePosition.WALL) {
            //go to Wall position
@@ -551,25 +550,12 @@ public class Hardware2025 {
                switch (slideTargetPosition) {
                    case WALL:
                        if (magneticSensorWall.isPressed()) {
-                           moveSlide(0.0);
-                       }
-
-               }
+                           moveSlide(0.0); }}
                if (getSlidePower() < 0.0) {
-
                    switch (slideTargetPosition) {
                        case WALL:
                            if (magneticSensorWall.isPressed()) {
-                               moveSlide(0.0);
-
-                           }
-
-                   }
-
-               }
-           }
-       }
-
+                               moveSlide(0.0); }}}}}
        if (slideTargetPosition == SlidePosition.LOW) {
            //go to Low Bar position
            double power = 0.0;
@@ -593,23 +579,13 @@ public class Hardware2025 {
                    case LOW:
                        if (magneticSensorLow.isPressed()) {
                            moveSlide(0.0);
-                       }
-
-               }
+                       }}
                if (getSlidePower() < 0.0) {
-
                    switch (slideTargetPosition) {
                        case LOW:
                            if (magneticSensorLow.isPressed()) {
                                moveSlide(0.0);
-
-                           }
-
-                   }
-
-               }
-           }
-       }
+                           }} }}}
 
        if (slideTargetPosition == SlidePosition.HIGH) {
            //go to Low Bar position
@@ -622,45 +598,20 @@ public class Hardware2025 {
                    power = 0.5;
                    break;
                case NONE:
-                   break;
-           }
+                   break;}
            moveSlide(power);
-
            if (getSlidePower() > 0.0) {
                switch (slideTargetPosition) {
                    case HIGH:
                        if (magneticSensorHigh.isPressed()) {
                            moveSlide(0.0);
-                       }
-
-               }
+                       }}
                if (getSlidePower() < 0.0) {
-
                    switch (slideTargetPosition) {
                        case HIGH:
                            if (magneticSensorHigh.isPressed()) {
-                               moveSlide(0.0);
-
-                           }
-
-                   }
-
-               }
-           }
-       }
-   }*/
-
-
-
-
-
-
-
-
-
-
-
-
+                               moveSlide(0.0); } } } } }}
+*/
 }
 
 

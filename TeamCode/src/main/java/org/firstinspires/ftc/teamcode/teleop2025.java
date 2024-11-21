@@ -28,13 +28,8 @@
  */
 
 package org.firstinspires.ftc.teamcode;
-
-import android.widget.Switch;
-
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 
@@ -43,14 +38,14 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  */
 
 @TeleOp(name = "teleop2025", group = "Linear Opmode")
-//@Disabled
+
 public class teleop2025 extends LinearOpMode {
 
     // Declare OpMode members for each of the 4 motors.
     Hardware2025 robot = new Hardware2025(this);
     private final ElapsedTime runtime = new ElapsedTime();
 
-    // @Override
+    // Robot class
     public void runOpMode() {
         robot.init();
 
@@ -64,121 +59,95 @@ public class teleop2025 extends LinearOpMode {
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
-            double max;
+
             // This button choice was made so that it is hard to hit on accident
             // The equivalent button is start on Xbox-style controllers.
             if (gamepad1.options) {
                 robot.resetYaw();
             }
 
+            //For telemetry
             robot.getColor();
             robot.getSlideCurrent();
             telemetry.update();
 
-            //SlowScales input
+            //Slow scales input
             double gp1LY = gamepad1.left_stick_y;
             double gp1LX = gamepad1.left_stick_x;
             double gp1RX = gamepad1.right_stick_x;
 
-            //slowscale 1
+            //slow scale 1
             if (gamepad1.right_bumper) {
-                double slowscale = .33;
-                gp1LY *= slowscale;
-                gp1LX *= slowscale;
-                gp1RX *= slowscale;
+                double slowScale = .33;
+                gp1LY *= slowScale;
+                gp1LX *= slowScale;
+                gp1RX *= slowScale;
             }
 
-            //slowscale 2
+            //slow scale 2
             if (gamepad1.left_bumper) {
-                double slowscale = .1;
-                gp1LY *= slowscale;
-                gp1LX *= slowscale;
-                gp1RX *= slowscale;
+                double slowScale = .25;
+                gp1LY *= slowScale;
+                gp1LX *= slowScale;
+                gp1RX *= slowScale;
             }
 
+            // Field centric
             robot.driveRobotFC(-gp1LY, gp1LX, gp1RX);
 
-            //pickup routine
+            //ignore input or cancel (another method, kill slide/stop slide) currently running operation if second button pressed
+            //go to the pickup height
+
+            // Clip on to bar
             if (gamepad2.a) {
-                robot.slideByEncoder(.8,0,10);
-                robot.closeClaw();
-                robot.slideByEncoder(.8,4,10);
+                robot.relativeSlideByEncoder(.8, -4.5, 10);
             }
 
-            //go to bar 1 height
+            // Go to wall position
             if (gamepad2.b) {
-                robot.slideByEncoder(.8,12,10);
-                robot.strafeTimed(.3,.4);
-                robot.slideByEncoder(1,0,10);
-
+                robot.startSlideByEncoder(.5, robot.WALL_POSITION, 10);
             }
 
+            // Go to low bar height
             if (gamepad2.x) {
-                robot.slideByEncoder(.8,18,15);
-                robot.strafeTimed(.3,.4);
-                //robot.slideByEncoder(.8,8,10);
-
+                robot.startSlideByEncoder(.5, robot.LOW_POSITION, 10);
             }
+
+            // Go to high bar height
+            if (gamepad2.y) {
+                robot.startSlideByEncoder(.5, robot.HIGH_POSITION, 15);
+            }
+            // Checks if the slide is where it should be
+            robot.checkSlideByEncoderTimed();
 
             //open and close claw via touch sensor
-            if (gamepad2.right_bumper) {
+            if (gamepad2.right_bumper || robot.touchSensor.isPressed()) {
                 robot.closeClaw();
-                telemetry.addData("GamepadRBumper", "Is Pressed");
-
+            } else {
+                robot.openClaw();
             }
 
             if (gamepad2.left_bumper) {
-                robot.openClaw();
-                telemetry.addData("GamepaLRBumper", "Is Pressed");
+                robot.closeBeak();
+
+            } else {
+                robot.openBeak();
             }
 
-            //move the arm
+            // Move the arm to pick up a sample
             if (gamepad2.dpad_right) {
                 robot.moveArm(.5);
             }
 
-            else if (gamepad2.dpad_left) {
-                robot.moveArm(-.8);
+            // Move the arm back to the robot
+            if (gamepad2.dpad_left) {
+                robot.moveArm(-.5);
             }
 
+            // Shut off arm power
             else {
                 robot.moveArm(0);
             }
-
-
-            /** if (gamepad2.a){
-                robot.setSlideTargetPosition(Hardware2025.SlidePosition.START);
-            }
-            if (gamepad2.b){
-                robot.setSlideTargetPosition(Hardware2025.SlidePosition.WALL);
-            }
-            if (gamepad2.x){
-                robot.setSlideTargetPosition(Hardware2025.SlidePosition.LOW);
-            }
-            if (gamepad2.y){
-                robot.setSlideTargetPosition(Hardware2025.SlidePosition.HIGH);
-            }
-
-                        if (gamepad2.dpad_up) {
-                robot.moveSlide(1);
-            }
-
-            if (gamepad2.dpad_down) {
-                robot.moveSlide(-1);
-            }
-
-             private void driveRobotFC(double v, double gp1LX, double gp1RX)}
-             private void resetYaw(){}
-
-             if (gamepad2.dpad_up) {
-             robot.moveSlide(1);
-             }
-
-             if (gamepad2.dpad_down) {
-             robot.moveSlide(-1);
-             }
-        **/
-
         }
     }
 }
