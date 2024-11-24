@@ -100,7 +100,7 @@ public class teleop2025 extends LinearOpMode {
 
             // Clip on to bar
             if (gamepad2.a) {
-                robot.relativeSlideByEncoder(.8, -4.5, 10);
+                robot.relativeSlideByEncoder(.8, -5.5, 10);
             }
 
             // Go to wall position
@@ -108,7 +108,7 @@ public class teleop2025 extends LinearOpMode {
                 robot.startSlideByEncoder(.5, robot.WALL_POSITION, 10);
             }
 
-            // Go to low bar height
+            // Go to low bafc=r height
             if (gamepad2.x) {
                 robot.startSlideByEncoder(.5, robot.LOW_POSITION, 10);
             }
@@ -119,6 +119,8 @@ public class teleop2025 extends LinearOpMode {
             }
             // Checks if the slide is where it should be
             robot.checkSlideByEncoderTimed();
+
+            //robot.checkArmByEncoderTimed();
 
             //open and close claw via touch sensor
             if (gamepad2.right_bumper || robot.touchSensor.isPressed()) {
@@ -136,17 +138,19 @@ public class teleop2025 extends LinearOpMode {
 
             // Move the arm to pick up a sample
             if (gamepad2.dpad_right) {
-                robot.moveArm(.5);
+                robot.moveArm(.6);
+                //robot.startArmByEncoder(-1, 1, 10);
             }
 
             // Move the arm back to the robot
             if (gamepad2.dpad_left) {
-                robot.moveArm(-.5);
+                robot.moveArm(-.6);
+                //robot.startArmByEncoder(1, 2, 10);
             }
 
             // Shut off arm power
             else {
-                robot.moveArm(0);
+                robot.moveArm(.01);
             }
         }
     }

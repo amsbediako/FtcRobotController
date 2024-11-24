@@ -77,17 +77,20 @@ public class Hardware2025 {
     static final double SLIDE_GEAR_REDUCTION = 2;
     static final double COUNTS_PER_INCH_SLIDE = (COUNTS_PER_REVOLUTION_SLIDE) /
             (1.3125 * Math.PI * SLIDE_GEAR_REDUCTION);
+    static final double COUNTS_PER_INCH_ARM = COUNTS_PER_INCH_SLIDE;
 
     private double turnSpeed = 0;
     static final double P_TURN_GAIN = 0.02;     // Larger is more responsive, but also less stable
     static final double P_DRIVE_GAIN = 0.02;     // Larger is more responsive, but also less stable
     static final double HEADING_THRESHOLD = 5.0;
     static final double OPEN_SERVO_CLAW = 0.7;
-    static final double CLOSE_SERVO_CLAW = 0.2;
+    static final double CLOSE_SERVO_CLAW = -2;
     private static final double BEAK_OPEN = .7;
     private static final double BEAK_CLOSE = .5;
     private int slideTarget;
+    private int armTarget;
     private double slideTimeout;
+    private double armTimeout;
 
     // Claw and beak servos and sensors
     Servo clawServo;
@@ -451,13 +454,12 @@ public class Hardware2025 {
             myOpMode.telemetry.addData("Currently at", " at st:%7d", slide.getCurrentPosition());
             myOpMode.telemetry.update();
         } else {
-
-            stopSlideEncoder();
+            //stopSlideEncoder();
         }
     }
 
     public void stopSlideEncoder() {
-        slide.setPower(0.01);
+        slide.setPower(0);
         slide.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
@@ -477,7 +479,34 @@ public class Hardware2025 {
         return slide.getPower();
     }
 
+    public void startArmByEncoder(double speed, double position, double timeout) {
+        // Determine new target position, and pass to motor controller
+        armTimeout = timeout;
+        armTarget = (int) (position * COUNTS_PER_INCH_ARM);
+        arm.setTargetPosition(armTarget);
+        arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        runtime.reset();
+        arm.setPower(Math.abs(speed));
+    }
 
+    public void checkArmByEncoderTimed() {
+
+        if ((runtime.seconds() < armTimeout) && (arm.isBusy())) {
+
+            // Display it for the driver.
+            myOpMode.telemetry.addData("Running to", " st:%7d ", armTarget);
+            myOpMode.telemetry.addData("Currently at", " at st:%7d", arm.getCurrentPosition());
+            myOpMode.telemetry.update();
+        } else {
+
+            stopArmEncoder();
+        }
+    }
+
+    public void stopArmEncoder() {
+        arm.setPower(0.01);
+        arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
 /* Code for next qualifier
        if (magneticSensorLow.isPressed()) {
             myOpMode.telemetry.addData("LinearSlide", "Is at low");

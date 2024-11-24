@@ -15,16 +15,12 @@ public class autoclose extends LinearOpMode {
 
         waitForStart();
 
-        robot.strafeTimed(-1, 1.5);
-        robot.strafeTimed(1, 1.5);
-
-        robot.straightTimed(1, 4.1);
-        robot.strafeTimed(-1, 1.1);
-        robot.straightTimed(-1, 4.1);
-        robot.strafeTimed(-1, 0.5);
-        robot.strafeTimed(1, 8);
-
+        robot.closeBeak();
+        robot.driveDiagonalForTime(-.4, .5, 1.2);
+        robot.startSlideByEncoder(.5, robot.HIGH_POSITION, 10);
+        robot.relativeSlideByEncoder(.8, -6, 10);
+        robot.openClaw();
+        robot.driveDiagonalForTime(.5, -.5, 1.2);
 
     }
 }
-
