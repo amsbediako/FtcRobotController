@@ -28,27 +28,28 @@
  */
 
 package org.firstinspires.ftc.teamcode;
-
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 
 /**
- * This file contains Teleop for Centerstage
+ * This file contains Teleop
  */
 
 @TeleOp(name = "teleop2025", group = "Linear Opmode")
-//@Disabled
+
 public class teleop2025 extends LinearOpMode {
 
     // Declare OpMode members for each of the 4 motors.
-  Hardware2025 robot = new Hardware2025(this);
+    Hardware2025 robot = new Hardware2025(this);
     private final ElapsedTime runtime = new ElapsedTime();
 
-    // @Override
+    // Robot class
     public void runOpMode() {
         robot.init();
+
+        //robot.startSlide();
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -58,40 +59,103 @@ public class teleop2025 extends LinearOpMode {
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
-            double max;
-            // This button choice was made so that it is hard to hit on accident,
-            // it can be freely changed based on preference.
+
+            // This button choice was made so that it is hard to hit on accident
             // The equivalent button is start on Xbox-style controllers.
             if (gamepad1.options) {
                 robot.resetYaw();
             }
+            if (robot.magneticSensor.isPressed()){
+                robot.resetSlideEncoder();
+            }
+
+            //For telemetry
+            robot.getColor();
+            robot.getSlideCurrent();
+            telemetry.update();
+
+            //Slow scales input
             double gp1LY = gamepad1.left_stick_y;
             double gp1LX = gamepad1.left_stick_x;
             double gp1RX = gamepad1.right_stick_x;
-            double slowscale = .25;
+
+            //slow scale 1
             if (gamepad1.right_bumper) {
-                gp1LY *= slowscale;
-                gp1LX *= slowscale;
-                gp1RX *= slowscale;
+                double slowScale = .25;
+                gp1LY *= slowScale;
+                gp1LX *= slowScale;
+                gp1RX *= slowScale;
             }
+
+            //slow scale 2
+            if (gamepad1.left_bumper) {
+                double slowScale = .33;
+                gp1LY *= slowScale;
+                gp1LX *= slowScale;
+                gp1RX *= slowScale;
+            }
+
+            // Field centric
             robot.driveRobotFC(-gp1LY, gp1LX, gp1RX);
 
+            //ignore input or cancel (another method, kill slide/stop slide) currently running operation if second button pressed
+            //go to the pickup height
 
-            double intake_position;
-            if (gamepad2.dpad_down) {
-                intake_position = 1;
-            } else if (gamepad2.dpad_up) {
-                intake_position = -1;
+            // Clip on to bar
+            if (gamepad2.a) {
+                robot.relativeSlideByEncoder(1, -4.5, 10);
+            }
+
+            // Go to wall position
+            if (gamepad2.b) {
+                robot.startSlideByEncoder(.5, robot.WALL_POSITION, 10);
+            }
+
+            // Go to low bar height
+            if (gamepad2.x) {
+                robot.startSlideByEncoder(.5, robot.LOW_POSITION, 10);
+            }
+
+            // Go to high bar height
+            if (gamepad2.y) {
+                robot.startSlideByEncoder(.5, robot.HIGH_POSITION, 10);
+            }
+            // Checks if the slide is where it should be
+            robot.isSlideDone();
+
+            //open and close claw via touch sensor
+            if (gamepad2.right_bumper) {
+                robot.closeClaw();
             } else {
-                intake_position = 0.0;
+                robot.openClaw();
+            }
+
+            if (gamepad2.left_bumper) {
+                robot.closeBeak();
+            } else {
+                robot.openBeak();
+            }
+
+            // Move the arm to pick up a sample
+            if (gamepad2.dpad_left) {
+                robot.moveArm(1);
+                //robot.startArmByEncoder(.5, 5, 10);
+            }
+
+            // Move the arm back to the robot
+            if (gamepad2.dpad_right) {
+                robot.moveArm(-1);
+                //robot.startArmByEncoder(.5, -5, 10);
+            }
+
+            if (gamepad2.left_trigger > 0.05) {
+                robot.moveArm(-gamepad2.left_trigger);
+            }
+
+            // Shut off arm power
+            else {
+                robot.moveArm(0);
             }
         }
-    }
-
-    private void driveRobotFC(double v, double gp1LX, double gp1RX) {
-    }
-
-    private void resetYaw() {
-        
     }
 }
