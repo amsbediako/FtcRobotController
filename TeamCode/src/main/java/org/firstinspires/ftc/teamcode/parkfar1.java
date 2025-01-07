@@ -76,7 +76,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 //@Disabled
 public class parkfar1 extends LinearOpMode {
 
-    ChickalettaHardware robot = new ChickalettaHardware(this);
+    Hardware2025 robot = new  Hardware2025(this);
 
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
 

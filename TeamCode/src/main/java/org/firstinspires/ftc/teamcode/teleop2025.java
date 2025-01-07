@@ -33,6 +33,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 
+
 /**
  * This file contains Teleop
  */
@@ -62,6 +63,8 @@ public class teleop2025 extends LinearOpMode {
 
             // This button choice was made so that it is hard to hit on accident
             // The equivalent button is start on Xbox-style controllers.
+
+
             if (gamepad1.options) {
                 robot.resetYaw();
             }
@@ -73,6 +76,7 @@ public class teleop2025 extends LinearOpMode {
             robot.getColor();
             robot.getSlideCurrent();
             telemetry.update();
+
 
             //Slow scales input
             double gp1LY = gamepad1.left_stick_y;
@@ -122,6 +126,9 @@ public class teleop2025 extends LinearOpMode {
             }
             // Checks if the slide is where it should be
             robot.isSlideDone();
+            robot.slideBelowZero();
+            robot.slideWasReset();
+
 
             //open and close claw via touch sensor
             if (gamepad2.right_bumper) {
@@ -137,15 +144,18 @@ public class teleop2025 extends LinearOpMode {
             }
 
             // Move the arm to pick up a sample
-            if (gamepad2.dpad_left) {
-                robot.moveArm(1);
+            if(gamepad2.dpad_left) {
+                robot.moveArm(.5);
                 //robot.startArmByEncoder(.5, 5, 10);
             }
 
-            // Move the arm back to the robot
             if (gamepad2.dpad_right) {
-                robot.moveArm(-1);
+                robot.moveArm(-.5);
                 //robot.startArmByEncoder(.5, -5, 10);
+            }
+
+            while (!gamepad2.dpad_left && !gamepad2.dpad_right) {
+                robot.holdArmEncoder();
             }
 
             if (gamepad2.left_trigger > 0.05) {
@@ -156,6 +166,16 @@ public class teleop2025 extends LinearOpMode {
             else {
                 robot.moveArm(0);
             }
+
+            if (gamepad2.start){
+                robot.scoreOnHighBar();
+                telemetry.addData("Robot", "Is Scoring on High Bar");
+            }
+
+            if (gamepad2.back){
+                robot.hang();
+            }
+
         }
     }
 }

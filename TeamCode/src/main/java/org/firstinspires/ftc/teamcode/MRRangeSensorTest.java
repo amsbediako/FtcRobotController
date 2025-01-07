@@ -50,14 +50,16 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 @Disabled   // comment out or remove this line to enable this OpMode
 public class MRRangeSensorTest extends LinearOpMode {
 
+    private static final double MAX_DISTANCE = 10;
     ModernRoboticsI2cRangeSensor rangeSensor;
 
-    @Override public void runOpMode() {
+    @Override
+    public void runOpMode() {
 
         // get a reference to our compass
         rangeSensor = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "sensor_range");
 
-       // static final double MAX_DISTANCE = 10;
+        // static final double MAX_DISTANCE = 10;
 
         // wait for the start button to be pressed
         waitForStart();
@@ -68,9 +70,9 @@ public class MRRangeSensorTest extends LinearOpMode {
 
             telemetry.addData("distance (cm)", distance);
 
-                if (gamepad1.x){
-                   //straight by encoder
-                    if (distance > MAX_DISTANCE ) {
+            if (gamepad1.x) {
+                //straight by encoder
+                if (distance > MAX_DISTANCE) {
                     /*STOP ROBOT
                     RAISE SLIDE
                     MOVE FOWARD
@@ -80,19 +82,20 @@ public class MRRangeSensorTest extends LinearOpMode {
                      */
                 }
 
-            if (distance < 10) {
-                telemetry.update();
-                telemetry.addData("close", true);
+                if (distance < 10) {
+                    telemetry.update();
+                    telemetry.addData("close", true);
 
-            }
+                }
 
 
-         //???
+                //???
          /*   telemetry.addData("raw ultrasonic", rangeSensor.rawUltrasonic());
             telemetry.addData("raw optical", rangeSensor.rawOptical());
             telemetry.addData("cm optical", "%.2f cm", rangeSensor.cmOptical());
             telemetry.addData("cm", "%.2f cm", rangeSensor.getDistance(DistanceUnit.CM));
             telemetry.update(); */
+            }
         }
     }
 }

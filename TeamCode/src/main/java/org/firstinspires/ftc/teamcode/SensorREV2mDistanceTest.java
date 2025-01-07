@@ -30,14 +30,13 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package org.firstinspires.ftc.robotcontroller.external.samples;
+package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
-
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 /*
@@ -52,20 +51,29 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
  */
 @TeleOp(name = "Sensor: REV2mDistance", group = "Sensor")
 @Disabled
-public class SensorREV2mDistance extends LinearOpMode {
+public class SensorREV2mDistanceTest extends LinearOpMode {
 
     private DistanceSensor sensorDistanceTest;
     //done
 
-    @Override
+//press button -> line up using sensor to a certain distance from the bar to set up for scoring
+// arm would go to high bar scoring position
+// move forward to distance from the bar to score using DS
+//bring arm down to score and release sample
+//move back 2 inches ish to get out of danger
+
     public void runOpMode() {
         // you can use this as a regular DistanceSensor.
         sensorDistanceTest = hardwareMap.get(DistanceSensor.class, "sensor_distance");
         //done
 
+        final double ROBOT_AT_BAR = 10.0;
+        //done
+
         // you can also cast this to a Rev2mDistanceSensor if you want to use added
         // methods associated with the Rev2mDistanceSensor class.
         Rev2mDistanceSensor sensorTimeOfFlight = (Rev2mDistanceSensor) sensorDistanceTest;
+        //done
 
         telemetry.addData(">>", "Press start to continue");
         telemetry.update();
@@ -74,16 +82,18 @@ public class SensorREV2mDistance extends LinearOpMode {
         while(opModeIsActive()) {
             // generic DistanceSensor methods.
             telemetry.addData("deviceName", sensorDistanceTest.getDeviceName() );
-            telemetry.addData("range", String.format("%.01f mm", sensorDistanceTest.getDistance(DistanceUnit.MM)));
             telemetry.addData("range", String.format("%.01f cm", sensorDistanceTest.getDistance(DistanceUnit.CM)));
-            telemetry.addData("range", String.format("%.01f m", sensorDistanceTest.getDistance(DistanceUnit.METER)));
-            telemetry.addData("range", String.format("%.01f in", sensorDistanceTest.getDistance(DistanceUnit.INCH)));
+
 
             // Rev2mDistanceSensor specific methods.
             telemetry.addData("ID", String.format("%x", sensorTimeOfFlight.getModelID()));
             telemetry.addData("did time out", Boolean.toString(sensorTimeOfFlight.didTimeoutOccur()));
 
             telemetry.update();
+
+            if (sensorDistanceTest.getDistance(DistanceUnit.CM) < ROBOT_AT_BAR) {
+
+            }
         }
     }
 
