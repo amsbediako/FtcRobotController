@@ -13,7 +13,6 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-
 @TeleOp(name = "ShootBall", group = "Concept")
 public class ShootBall extends LinearOpMode {
 

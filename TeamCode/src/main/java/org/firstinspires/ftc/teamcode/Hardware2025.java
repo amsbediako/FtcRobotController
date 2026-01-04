@@ -131,6 +131,13 @@ public class Hardware2025 {
         leftSlide = myOpMode.hardwareMap.get(DcMotor.class, "left_slide");
         rightSlide = myOpMode.hardwareMap.get(DcMotor.class, "right_slide");
         arm = myOpMode.hardwareMap.get(DcMotor.class, "arm");
+        leftFrontDrive = myOpMode.hardwareMap.get(DcMotor.class, "left_front_drive");
+        leftBackDrive = myOpMode.hardwareMap.get(DcMotor.class, "left_back_drive");
+        rightFrontDrive = myOpMode.hardwareMap.get(DcMotor.class, "right_front_drive");
+        rightBackDrive = myOpMode.hardwareMap.get(DcMotor.class, "right_back_drive");
+        leftSlide = myOpMode.hardwareMap.get(DcMotor.class, "left_slide");
+        rightSlide = myOpMode.hardwareMap.get(DcMotor.class, "right_slide");
+        arm = myOpMode.hardwareMap.get(DcMotor.class, "arm");
 
 
         myOtos = myOpMode.hardwareMap.get(SparkFunOTOS.class, "sensor_otos"); //Otos sensor

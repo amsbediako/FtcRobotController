@@ -5,6 +5,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.SwitchableLight;
@@ -21,6 +23,10 @@ import java.util.List;
 public class ShootPot extends LinearOpMode {
 
     // --- Hardware ---
+
+    private DcMotor rightShooter;
+
+    private DcMotor leftShooter;
     CRServo axleServo;
     AnalogInput axlePot;
     NormalizedColorSensor colorSensor;
@@ -29,12 +35,12 @@ public class ShootPot extends LinearOpMode {
 
     // --- Constants ---
     static final double TOLERANCE = 0.08;  // Increased slightly for one-way reliability
-    static final double SERVO_POWER = 0.35; // Speed for one-way travel
+    static final double SERVO_POWER = -0.7; // Speed for one-way travel
 
     // Target Voltages
     static final double POSITION_ONE = 0.0;
-    static final double POSITION_TWO = 1.466;
-    static final double POSITION_THREE = 0.7333;
+    static final double POSITION_TWO = 0.83;
+    static final double POSITION_THREE = 1.64;
     static final double[] POSITIONS = {POSITION_ONE, POSITION_TWO, POSITION_THREE};
 
     // --- State & Logic ---
@@ -54,6 +60,11 @@ public class ShootPot extends LinearOpMode {
         axleServo = hardwareMap.get(CRServo.class, "turnServo");
         axlePot = hardwareMap.get(AnalogInput.class, "axlePot");
         colorSensor = hardwareMap.get(NormalizedColorSensor.class, "sensor_color");
+        rightShooter = hardwareMap.get(DcMotor.class, "shoot_right");
+        leftShooter = hardwareMap.get(DcMotor.class, "shoot_left");
+
+        leftShooter.setDirection(DcMotorSimple.Direction.FORWARD);
+        rightShooter.setDirection(DcMotorSimple.Direction.REVERSE);
 
         if (colorSensor instanceof SwitchableLight) ((SwitchableLight) colorSensor).enableLight(true);
         initAprilTag();
@@ -68,6 +79,7 @@ public class ShootPot extends LinearOpMode {
             int currentPosIndex = getClosestPosition(currentVoltage);
 
             updateAprilTagOrder();
+
 
             if (currentPosIndex != -1 && !spotLocked[currentPosIndex]) {
                 scanCurrentSpot(currentPosIndex);
@@ -84,6 +96,11 @@ public class ShootPot extends LinearOpMode {
 
             if (gamepad1.start) resetSystem();
             if (gamepad1.right_bumper) runAutoLaunch();
+            if (gamepad1.dpad_up) {
+                startLauncher();
+        } else{
+                stopLauncher();
+            }
 
             updateTelemetry(currentVoltage, currentPosIndex);
         }
@@ -162,7 +179,8 @@ public class ShootPot extends LinearOpMode {
     }
     private void shootBall() {
         ///open lancher door
-        ///start launcher wheels
+        startLauncher();
+        sleep(500);
         double currentVoltage = axlePot.getVoltage();
         int currentPosIndex = getClosestPosition(currentVoltage);
 
@@ -178,14 +196,25 @@ public class ShootPot extends LinearOpMode {
             }
         }
 
+
         // Determine the next position in the sequence (0 -> 1 -> 2 -> 0)
         int nextIndex = (currentPosIndex + 1) % POSITIONS.length;
 
         // Execute the movement using your one-way logic
         moveToVoltage(POSITIONS[nextIndex]);
+        sleep(500);
 
-        /// stop wheels
+        stopLauncher();
         /// close launcher door
+    }
+
+    private void startLauncher(){
+        rightShooter.setPower(.7);
+        leftShooter.setPower(.7);
+    }
+    private void stopLauncher(){
+        rightShooter.setPower(0);
+        leftShooter.setPower(0);
     }
 
     private void resetSystem() {
@@ -201,12 +230,16 @@ public class ShootPot extends LinearOpMode {
         for (AprilTagDetection detection : currentDetections) {
             if (detection.id == 21) {
                 shootingOrder[0] = COLOR_GREEN; shootingOrder[1] = COLOR_PURPLE; shootingOrder[2] = COLOR_PURPLE;
+
             } else if (detection.id == 22) {
                 shootingOrder[0] = COLOR_PURPLE; shootingOrder[1] = COLOR_GREEN; shootingOrder[2] = COLOR_PURPLE;
+
             } else if (detection.id == 23) {
                 shootingOrder[0] = COLOR_PURPLE; shootingOrder[1] = COLOR_PURPLE; shootingOrder[2] = COLOR_GREEN;
+
             }
         }
+        telemetry.update();
     }
 
     private void initAprilTag() {
@@ -224,7 +257,19 @@ public class ShootPot extends LinearOpMode {
         for (int i=0; i<3; i++) {
             telemetry.addData("Spot " + (i+1), spotLocked[i] ? colorName(spotColors[i]) : "EMPTY");
         }
+        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+        for (AprilTagDetection detection : currentDetections) {
+            if (detection.id == 21) {
+                telemetry.addData("Pattern", "GPP");
+            } else if (detection.id == 22) {
+                telemetry.addData("Pattern", "PGP");
+            } else if (detection.id == 23) {
+                telemetry.addData("Pattern", "PPG");
+            }
+        }
         telemetry.update();
+        telemetry.update();
+
     }
 
     private String colorName(int c) {
