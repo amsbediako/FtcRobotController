@@ -128,6 +128,9 @@ public class Hardware2026 {
     boolean daisyIsSpinning = false;
     int daisySpinDuration = 0;
 
+    boolean daisyMoving = false;
+    double daisyTarget = 0;
+
     //-----------------------------------------------OTOS-----------------------------------------//
     SparkFunOTOS myOtos;
 
@@ -216,11 +219,6 @@ public class Hardware2026 {
         builder.setCamera(myOpMode.hardwareMap.get(WebcamName.class, "Webcam 1"));
         builder.addProcessor(aprilTag);
 
-//        aprilTag = AprilTagProcessor.easyCreateWithDefaults();
-//        visionPortal = VisionPortal.easyCreateWithDefaults(
-//                myOpMode.hardwareMap.get(WebcamName.class, "Webcam 1"),
-//                aprilTag
-//        );
 
         visionPortal = builder.build();
 
@@ -815,28 +813,25 @@ public class Hardware2026 {
         return power;
     }
 
+
+
     public void moveToVoltage(double target) {
-        ElapsedTime timer = new ElapsedTime();
-        timer.reset();
+        daisyTarget = target;
+        daisyTimer.reset();
+        daisyMoving = true;
+    }
 
-        while (myOpMode.opModeIsActive() && timer.seconds() < 3.0) { // 3-second safety timeout
-            double current = positionSensor.getVoltage();
+    public void updateDaisy() {
+        if (!daisyMoving) return; // Not moving, do nothing
 
-            // Check if we reached target
-            if (Math.abs(target - current) < TOLERANCE) {
-                break;
-            }
+        double current = positionSensor.getVoltage();
 
-            // ALWAYS POSITIVE POWER - Only moves forward
-            daisy.setPower(SERVO_POWER);
-
-            if (myOpMode.gamepad1.left_bumper) break; // Manual emergency stop
-
-//            myOpMode.telemetry.addData("Seeking Target", target);
-//            myOpMode.telemetry.addData("Current Volt", "%.3f", current);
-            myOpMode.telemetry.update();
+        // Check if we reached target
+        if (Math.abs(daisyTarget - current) < TOLERANCE || daisyTimer.seconds() > 3.0) {
+            daisy.setPower(0);
+            daisyMoving = false;
+            return;
         }
-        daisy.setPower(0);
     }
 
     public int getClosestPosition(double voltage) {
@@ -913,6 +908,7 @@ public class Hardware2026 {
 
         // Execute the movement using your one-way logic
         moveToVoltage(POSITIONS[nextIndex]);
+        updateDaisy();
 
     }
     public void goToLast (){
@@ -938,12 +934,14 @@ public class Hardware2026 {
 
         // Execute the movement using your one-way logic
         moveToVoltage(POSITIONS[lastIndex]);
+        updateDaisy();
 
     }
 
     public void waitAndSpin() {
         int nextIndex = (getClosestPosition(positionSensor.getVoltage()) + 1) % POSITIONS.length;
         moveToVoltage(POSITIONS[nextIndex]);
+        updateDaisy();
     }
 
     public void resetSystem() {

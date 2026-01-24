@@ -11,10 +11,10 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@TeleOp(name = "WhatAndWhereAndWhenIsAprilTag ", group = "Concept")
+@TeleOp(name = "WhatAndWhenAndWhereIsAprilTag", group = "Concept")
 public class WhatAndWhenAndWhereIsAprilTag extends LinearOpMode {
 
-    // --- PID CLASS ---
+    //CLASSES
     public class PID {
         private double kP, kI, kD;
         private double integral = 0.0;
@@ -23,7 +23,9 @@ public class WhatAndWhenAndWhereIsAprilTag extends LinearOpMode {
         private final double derivTau = 0.02;
 
         public PID(double kP, double kI, double kD) {
-            this.kP = kP; this.kI = kI; this.kD = kD;
+            this.kP = kP;
+            this.kI = kI;
+            this.kD = kD;
         }
 
         public double update(double error, double dt) {
@@ -41,126 +43,141 @@ public class WhatAndWhenAndWhereIsAprilTag extends LinearOpMode {
         }
 
         public void reset() {
-            integral = 0.0; lastError = 0.0; derivativeFilter = 0.0;
+            integral = 0.0;
+            lastError = 0.0;
+            derivativeFilter = 0.0;
         }
 
         public void clampIntegral(double min, double max) {
-            if (integral > max) integral = max;
-            if (integral < min) integral = min;
+            integral = Math.max(min, Math.min(max, integral));
         }
     }
+
+    //MOTORS ETC
 
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
     private DcMotor cameraMotor;
 
-    @Override
+    private PID turnPID = new PID(0.006, 0.00005, 0.00045);
+
+    private double filteredBearing = 0.0;
+
+    //CONSTANTS
+
+    private static final int TARGET_TAG_ID = 24;
+    private static final double MAX_POWER = 0.20;
+    private static final double DEADBAND_DEG = 4.0;
+    private static final double LPF_ALPHA = 0.6;
+
+    //WOULD GO IN TELEOP
+
     public void runOpMode() {
-
-        // --- HARDWARE INIT ---
-        cameraMotor = hardwareMap.get(DcMotor.class, "camera_motor");
-        cameraMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        cameraMotor.setDirection(DcMotor.Direction.REVERSE); // adjust if needed
-
-        aprilTag = AprilTagProcessor.easyCreateWithDefaults();
-        visionPortal = VisionPortal.easyCreateWithDefaults(
-                hardwareMap.get(WebcamName.class, "Webcam 1"), aprilTag);
-
-        // --- PID for tracking ---
-        PID turnPID = new PID(0.012, 0.0002, 0.0012); // tuned for motor→camera gear
-
-        final double MAX_POWER = 0.25;        // max motor power
-        final double DEADBAND_DEG = 4.0;      // camera degrees deadband
-
-        // --- SWEEP PARAMETERS ---
-        double filteredBearing = 0.0;
-        final double LPF_ALPHA = 0.3;         // smooth bearing filter
-        double sweepAngle = 0.0;              // approximate camera angle
-        boolean sweepRight = true;
-        final double SWEEP_POWER = 0.3;       // motor power for sweep
-        final double SWEEP_MAX_ANGLE = 90.0;  // camera sweep limit
-        final double EDGE_SLOW_DISTANCE = 20.0; // slow near edges
-
-        // --- GEAR RATIO ---
-        final double GEAR_RATIO = 90.0 / 16.0; // motor-to-camera
+        initHardware();
+        initVision();
 
         telemetry.addLine("Ready - press START");
         telemetry.update();
         waitForStart();
 
-        // start turret centered
-        cameraMotor.setPower(0.0);
-        sleep(100); // allow motor to settle
-
         long lastNs = System.nanoTime();
 
         while (opModeIsActive()) {
-            long nowNs = System.nanoTime();
-            double dt = (nowNs - lastNs) / 1e9; // seconds
-            lastNs = nowNs;
+            double dt = getDeltaTime(lastNs);
+            lastNs = System.nanoTime();
 
-            // --- GET APRILTAG DETECTIONS ---
-            List<AprilTagDetection> detections = aprilTag.getDetections();
-            AprilTagDetection tag24 = null;
-            for (AprilTagDetection d : detections) {
-                if (d.id == 24) { tag24 = d; break; }
-            }
+            AprilTagDetection tag = getTagById(TARGET_TAG_ID);
 
-            if (tag24 != null && tag24.ftcPose != null) {
-                // -------- TRACK MODE --------
-                double rawBearing = tag24.ftcPose.bearing;
-                filteredBearing = LPF_ALPHA * filteredBearing + (1.0 - LPF_ALPHA) * rawBearing;
-                double bearingError = filteredBearing;
-
-                // PID scaled for motor → camera gear ratio
-                double motorError = bearingError * GEAR_RATIO;
-                double power = turnPID.update(motorError, dt);
-                turnPID.clampIntegral(-10, 10); // limit integral
-
-                // clamp power
-                power = Math.max(Math.min(power, MAX_POWER), -MAX_POWER);
-
-                // deadband
-                if (Math.abs(bearingError) <= DEADBAND_DEG || Math.abs(power) < 0.02) {
-                    cameraMotor.setPower(0.0);
-                    turnPID.reset();
-                    telemetry.addLine("CENTERED ✔");
-                } else {
-                    cameraMotor.setPower(power);
-                    telemetry.addLine(String.format("TRACKING TAG 24, POWER: %.3f", power));
-                }
-
+            if (tag != null && tag.ftcPose != null) {
+                handleTagTracking(tag, dt);
             } else {
-                // -------- SWEEP MODE --------
-                turnPID.reset();
-
-                // increment sweep angle (camera degrees)
-                double sweepIncrement = SWEEP_POWER * dt * 100;
-                sweepAngle += sweepRight ? sweepIncrement : -sweepIncrement;
-
-                // reverse at sweep limits
-                if (sweepAngle >= SWEEP_MAX_ANGLE) { sweepRight = false; sweepAngle = SWEEP_MAX_ANGLE; }
-                else if (sweepAngle <= -SWEEP_MAX_ANGLE) { sweepRight = true; sweepAngle = -SWEEP_MAX_ANGLE; }
-
-                // slow down near edges
-                double distanceToEdge = sweepRight ? SWEEP_MAX_ANGLE - sweepAngle : sweepAngle + SWEEP_MAX_ANGLE;
-                double scale = Math.min(1.0, distanceToEdge / EDGE_SLOW_DISTANCE);
-                scale = Math.max(0.2, scale);
-
-                // apply motor power directly
-                double appliedPower = SWEEP_POWER * scale;
-                cameraMotor.setPower(sweepRight ? appliedPower : -appliedPower);
-
-                telemetry.addLine(String.format("SWEEPING... Angle: %.1f°, Power: %.3f", sweepAngle, appliedPower));
-
-                sleep(15);
+                stopTurret();
+                telemetry.addLine("Tag 24 NOT FOUND");
             }
 
             telemetry.update();
+            sleep(15);
         }
 
-        // --- CLEANUP ---
-        cameraMotor.setPower(0.0);
         visionPortal.close();
     }
+
+    //METHODS 
+
+    private void initHardware() {
+        cameraMotor = hardwareMap.get(DcMotor.class, "camera_motor");
+        cameraMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        cameraMotor.setDirection(DcMotor.Direction.REVERSE);
+    }
+
+    private void initVision() {
+        aprilTag = AprilTagProcessor.easyCreateWithDefaults();
+        visionPortal = VisionPortal.easyCreateWithDefaults(
+                hardwareMap.get(WebcamName.class, "Webcam 1"), aprilTag);
+    }
+
+    private void handleTagTracking(AprilTagDetection tag, double dt) {
+        double rawBearing = tag.ftcPose.bearing;
+        filteredBearing = lowPassFilter(filteredBearing, rawBearing);
+        double error = filteredBearing;
+
+        if (Math.abs(error) <= DEADBAND_DEG) {
+            stopTurret();
+            telemetry.addLine("CENTERED ✔");
+        } else {
+            applyPID(error, dt);
+        }
+
+        telemetry.addData("rawBearing", rawBearing);
+        telemetry.addData("filteredBearing", filteredBearing);
+    }
+
+    private void applyPID(double error, double dt) {
+        double power = turnPID.update(error, dt);
+        turnPID.clampIntegral(-100.0, 100.0);
+
+        power = clamp(power, -MAX_POWER, MAX_POWER);
+        if (Math.abs(power) < 0.02) power = 0.0;
+
+        cameraMotor.setPower(power);
+        telemetry.addData("pidPower", power);
+    }
+
+    private void stopTurret() {
+        cameraMotor.setPower(0.0);
+        turnPID.reset();
+    }
+
+
+    private AprilTagDetection getTagById(int id) {
+        List<AprilTagDetection> detections = aprilTag.getDetections();
+        for (AprilTagDetection d : detections) {
+            if (d.id == id) return d;
+        }
+        return null;
+    }
+
+    private double lowPassFilter(double previous, double current) {
+        return (LPF_ALPHA * previous) + ((1.0 - LPF_ALPHA) * current);
+    }
+
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private double getDeltaTime(long lastNs) {
+        return (System.nanoTime() - lastNs) / 1e9;
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+

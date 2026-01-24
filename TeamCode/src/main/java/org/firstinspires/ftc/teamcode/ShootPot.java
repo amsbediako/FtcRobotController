@@ -196,6 +196,10 @@ public class ShootPot extends LinearOpMode {
             }
         }
 
+        if (currentPosIndex != -1) {
+            spotColors[currentPosIndex] = COLOR_NONE;
+            spotLocked[currentPosIndex] = false;
+        }
 
         // Determine the next position in the sequence (0 -> 1 -> 2 -> 0)
         int nextIndex = (currentPosIndex + 1) % POSITIONS.length;
@@ -203,6 +207,7 @@ public class ShootPot extends LinearOpMode {
         // Execute the movement using your one-way logic
         moveToVoltage(POSITIONS[nextIndex]);
         sleep(500);
+
 
         stopLauncher();
         /// close launcher door
@@ -271,6 +276,56 @@ public class ShootPot extends LinearOpMode {
         telemetry.update();
 
     }
+
+    private void shootColor(int targetColor) {
+        ElapsedTime timer = new ElapsedTime();
+        timer.reset();
+
+        axleServo.setPower(SERVO_POWER); // always forward
+
+        while (opModeIsActive() && timer.seconds() < 4.0) { // safety timeout
+            double voltage = axlePot.getVoltage();
+            int posIndex = getClosestPosition(voltage);
+
+            // Only consider detection if we're at a valid position
+            if (posIndex != -1) {
+                NormalizedRGBA c = colorSensor.getNormalizedColors();
+                float[] hsv = new float[3];
+                Color.colorToHSV(c.toColor(), hsv);
+                float hue = hsv[0];
+
+                boolean greenDetected =
+                        targetColor == COLOR_GREEN &&
+                                hue >= GREEN_HUE_MIN && hue <= GREEN_HUE_MAX;
+
+                boolean purpleDetected =
+                        targetColor == COLOR_PURPLE &&
+                                hue >= PURPLE_HUE_MIN && hue <= PURPLE_HUE_MAX;
+
+                if (greenDetected || purpleDetected) {
+                    axleServo.setPower(0);
+
+                    // Lock this spot
+                    spotColors[posIndex] = targetColor;
+                    spotLocked[posIndex] = true;
+
+                    // Shoot one ball
+                    shootBall();
+
+                    // Clear after shot
+
+                    return;
+                }
+            }
+
+            telemetry.addData("Seeking", colorName(targetColor));
+            telemetry.addData("Voltage", "%.2f", voltage);
+            telemetry.update();
+        }
+
+        axleServo.setPower(0); // timeout safety stop
+    }
+
 
     private String colorName(int c) {
         if (c == COLOR_GREEN) return "GREEN";
